@@ -54,9 +54,22 @@ namespace Rounds2.Editor
 
             playerObject.AddComponent<Health>();
             playerObject.AddComponent<PlayerController>();
+            playerObject.AddComponent<WeaponController>();
+
+            GameObject muzzleObject = new("Muzzle");
+            muzzleObject.transform.SetParent(playerObject.transform, false);
+            muzzleObject.transform.localPosition = new Vector3(0.55f, 0f, 0f);
 
             PrefabUtility.SaveAsPrefabAsset(playerObject, "Assets/Prefabs/Player.prefab");
             Object.DestroyImmediate(playerObject);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        public static void CreateBulletPrefabAndWirePlayer()
+        {
+            Bullet bulletPrefab = CreateBulletPrefab();
+            WirePlayerWeapon(bulletPrefab);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
@@ -166,6 +179,88 @@ namespace Rounds2.Editor
             TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
             importer.textureType = TextureImporterType.Sprite;
             importer.spritePixelsPerUnit = 32f;
+            importer.SaveAndReimport();
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+        }
+
+        private static Bullet CreateBulletPrefab()
+        {
+            GameObject bulletObject = new("Bullet");
+            bulletObject.AddComponent<NetworkObject>();
+
+            Rigidbody2D body = bulletObject.AddComponent<Rigidbody2D>();
+            body.gravityScale = 0f;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            CircleCollider2D collider = bulletObject.AddComponent<CircleCollider2D>();
+            collider.radius = 0.12f;
+            collider.isTrigger = true;
+
+            SpriteRenderer renderer = bulletObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = CreateCircleSprite("Assets/Prefabs/BulletSprite.png", 16, 7f);
+            renderer.color = new Color(1f, 0.92f, 0.25f, 1f);
+
+            Bullet bullet = bulletObject.AddComponent<Bullet>();
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(bulletObject, "Assets/Prefabs/Bullet.prefab");
+            Object.DestroyImmediate(bulletObject);
+            return prefab.GetComponent<Bullet>();
+        }
+
+        private static void WirePlayerWeapon(Bullet bulletPrefab)
+        {
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+            GameObject playerInstance = (GameObject)PrefabUtility.InstantiatePrefab(playerPrefab);
+
+            WeaponController weapon = playerInstance.GetComponent<WeaponController>();
+            if (weapon == null)
+            {
+                weapon = playerInstance.AddComponent<WeaponController>();
+            }
+
+            Transform muzzle = playerInstance.transform.Find("Muzzle");
+            if (muzzle == null)
+            {
+                GameObject muzzleObject = new("Muzzle");
+                muzzleObject.transform.SetParent(playerInstance.transform, false);
+                muzzleObject.transform.localPosition = new Vector3(0.55f, 0f, 0f);
+                muzzle = muzzleObject.transform;
+            }
+
+            SerializedObject serializedWeapon = new(weapon);
+            serializedWeapon.FindProperty("bulletPrefab").objectReferenceValue = bulletPrefab;
+            serializedWeapon.FindProperty("muzzle").objectReferenceValue = muzzle;
+            serializedWeapon.ApplyModifiedPropertiesWithoutUndo();
+
+            PrefabUtility.SaveAsPrefabAsset(playerInstance, "Assets/Prefabs/Player.prefab");
+            Object.DestroyImmediate(playerInstance);
+        }
+
+        private static Sprite CreateCircleSprite(string assetPath, int size, float radius)
+        {
+            Texture2D texture = new(size, size, TextureFormat.RGBA32, false);
+            Color clear = new(0f, 0f, 0f, 0f);
+            Color fill = Color.white;
+            Vector2 center = new((size - 1f) * 0.5f, (size - 1f) * 0.5f);
+
+            for (int y = 0; y < texture.height; y++)
+            {
+                for (int x = 0; x < texture.width; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x, y), center);
+                    texture.SetPixel(x, y, distance <= radius ? fill : clear);
+                }
+            }
+
+            texture.Apply();
+            byte[] png = texture.EncodeToPNG();
+            System.IO.File.WriteAllBytes(assetPath, png);
+            Object.DestroyImmediate(texture);
+
+            AssetDatabase.ImportAsset(assetPath);
+            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spritePixelsPerUnit = size;
             importer.SaveAndReimport();
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
