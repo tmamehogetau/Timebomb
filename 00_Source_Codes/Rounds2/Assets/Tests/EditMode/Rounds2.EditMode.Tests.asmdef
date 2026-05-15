@@ -2,7 +2,8 @@
     "name": "Rounds2.EditMode.Tests",
     "rootNamespace": "Rounds2.Tests.EditMode",
     "references": [
-        "Rounds2.Runtime"
+        "Rounds2.Runtime",
+        "FishNet.Runtime"
     ],
     "includePlatforms": [
         "Editor"
