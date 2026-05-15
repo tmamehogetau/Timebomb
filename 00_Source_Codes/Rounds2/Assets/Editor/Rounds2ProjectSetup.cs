@@ -4,6 +4,7 @@ using Rounds2.Combat;
 using Rounds2.Match;
 using Rounds2.Networking;
 using Rounds2.Player;
+using Rounds2.UI;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -87,6 +88,7 @@ namespace Rounds2.Editor
             CreatePlayerSpawnManager(networkManager, setManager, spawnPoints);
             CreateArenaCamera();
             CreateArenaBounds();
+            CreateDebugHud(networkManager);
 
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/Arena01.unity");
             AssetDatabase.SaveAssets();
@@ -214,6 +216,38 @@ namespace Rounds2.Editor
             renderer.color = new Color(0.35f, 0.38f, 0.42f, 1f);
 
             wallObject.AddComponent<BoxCollider2D>();
+        }
+
+        private static void CreateDebugHud(NetworkManager networkManager)
+        {
+            GameObject canvasObject = new("DebugHudCanvas");
+            Canvas canvas = canvasObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvasObject.AddComponent<CanvasScaler>();
+            canvasObject.AddComponent<GraphicRaycaster>();
+
+            GameObject textObject = new("StatusText");
+            textObject.transform.SetParent(canvasObject.transform, false);
+
+            RectTransform textRect = textObject.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 1f);
+            textRect.anchorMax = new Vector2(0f, 1f);
+            textRect.pivot = new Vector2(0f, 1f);
+            textRect.anchoredPosition = new Vector2(16f, -16f);
+            textRect.sizeDelta = new Vector2(220f, 64f);
+
+            Text statusText = textObject.AddComponent<Text>();
+            statusText.text = DebugHudText.Format(serverStarted: false, clientStarted: false);
+            statusText.alignment = TextAnchor.UpperLeft;
+            statusText.color = Color.white;
+            statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            statusText.fontSize = 18;
+
+            DebugHud debugHud = canvasObject.AddComponent<DebugHud>();
+            SerializedObject serializedHud = new(debugHud);
+            serializedHud.FindProperty("networkManager").objectReferenceValue = networkManager;
+            serializedHud.FindProperty("statusText").objectReferenceValue = statusText;
+            serializedHud.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void CreateButton(Transform parent, string label, Vector2 anchoredPosition, UnityEngine.Events.UnityAction action)
