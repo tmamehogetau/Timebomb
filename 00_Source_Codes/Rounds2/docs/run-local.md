@@ -40,6 +40,15 @@ Run the automated connection smoke test after building the client:
 
 This starts one hidden client build as the temporary server and two hidden client builds as clients. It checks the logs for `Arena01` load and two player spawns.
 
+For manual playtesting with visible client windows:
+
+```powershell
+.\scripts\play-local.ps1
+.\scripts\stop-local.ps1
+```
+
+`play-local.ps1` starts one hidden temporary server and two visible clients. Use `stop-local.ps1` to close the three launched processes.
+
 ## Build From Command Line
 
 ```powershell
