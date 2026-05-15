@@ -1,7 +1,6 @@
 using FishNet.Connection;
 using FishNet.Managing;
 using FishNet.Object;
-using FishNet.Transporting;
 using Rounds2.Combat;
 using UnityEngine;
 
@@ -31,9 +30,14 @@ namespace Rounds2.Match
 
         private void OnEnable()
         {
+            if (networkManager == null)
+            {
+                networkManager = FindFirstObjectByType<NetworkManager>();
+            }
+
             if (networkManager != null)
             {
-                networkManager.ServerManager.OnRemoteConnectionState += OnRemoteConnectionState;
+                networkManager.SceneManager.OnClientLoadedStartScenes += OnClientLoadedStartScenes;
             }
         }
 
@@ -41,13 +45,13 @@ namespace Rounds2.Match
         {
             if (networkManager != null)
             {
-                networkManager.ServerManager.OnRemoteConnectionState -= OnRemoteConnectionState;
+                networkManager.SceneManager.OnClientLoadedStartScenes -= OnClientLoadedStartScenes;
             }
         }
 
-        private void OnRemoteConnectionState(NetworkConnection connection, RemoteConnectionStateArgs args)
+        private void OnClientLoadedStartScenes(NetworkConnection connection, bool asServer)
         {
-            if (args.ConnectionState != RemoteConnectionState.Started || playerPrefab == null)
+            if (!asServer || playerPrefab == null)
             {
                 return;
             }
@@ -55,6 +59,7 @@ namespace Rounds2.Match
             Transform spawnPoint = GetNextSpawnPoint();
             NetworkObject player = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
             networkManager.ServerManager.Spawn(player, connection);
+            Debug.Log($"Rounds2 spawned player for connection {connection.ClientId} at {spawnPoint.position}.");
 
             Health health = player.GetComponent<Health>();
             if (health != null && setManager != null)

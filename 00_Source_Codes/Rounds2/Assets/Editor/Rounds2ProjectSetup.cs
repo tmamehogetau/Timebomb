@@ -1,3 +1,4 @@
+using FishNet.Component.Spawning;
 using FishNet.Managing;
 using FishNet.Object;
 using Rounds2.Combat;
@@ -10,6 +11,7 @@ using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -81,14 +83,12 @@ namespace Rounds2.Editor
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "Arena01";
 
-            NetworkManager networkManager = CreateNetworkManager();
-            CreateBootstrap(networkManager);
             SetManager setManager = CreateSetManager();
             Transform[] spawnPoints = CreateSpawnPoints();
-            CreatePlayerSpawnManager(networkManager, setManager, spawnPoints);
+            CreatePlayerSpawnManager(networkManager: null, setManager, spawnPoints);
             CreateArenaCamera();
             CreateArenaBounds();
-            CreateDebugHud(networkManager);
+            CreateDebugHud(networkManager: null);
 
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/Arena01.unity");
             AssetDatabase.SaveAssets();
@@ -119,6 +119,7 @@ namespace Rounds2.Editor
 
                 GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 instance.name = "NetworkManager";
+                RemoveDefaultPlayerSpawner(instance);
                 return instance.GetComponent<NetworkManager>();
             }
 
@@ -140,7 +141,16 @@ namespace Rounds2.Editor
         {
             GameObject eventSystemObject = new("EventSystem");
             eventSystemObject.AddComponent<EventSystem>();
-            eventSystemObject.AddComponent<StandaloneInputModule>();
+            eventSystemObject.AddComponent<InputSystemUIInputModule>();
+        }
+
+        private static void RemoveDefaultPlayerSpawner(GameObject networkManagerObject)
+        {
+            PlayerSpawner[] spawners = networkManagerObject.GetComponentsInChildren<PlayerSpawner>();
+            foreach (PlayerSpawner spawner in spawners)
+            {
+                Object.DestroyImmediate(spawner);
+            }
         }
 
         private static void CreateCanvas(ConnectionBootstrap bootstrap)

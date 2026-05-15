@@ -1,6 +1,7 @@
 using FishNet.Object;
 using Rounds2.Player;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Rounds2.Combat
 {
@@ -19,7 +20,8 @@ namespace Rounds2.Combat
 
         private void Update()
         {
-            if (!IsOwner || !Input.GetMouseButtonDown(0))
+            Mouse mouse = Mouse.current;
+            if (!IsOwner || mouse == null || !mouse.leftButton.wasPressedThisFrame)
             {
                 return;
             }

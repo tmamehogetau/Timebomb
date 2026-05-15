@@ -8,6 +8,12 @@ Build a Windows server target from Unity and run it with:
 Builds\Server\Rounds2Server.exe -server
 ```
 
+This requires Unity's Windows Dedicated Server Build Support module. Until that module is installed, the client build can be used as a temporary local server:
+
+```powershell
+Builds\Client\Rounds2Client.exe -server
+```
+
 ## Client
 
 Run a Windows client build or the Unity Editor with:
@@ -25,3 +31,12 @@ Builds\Client\Rounds2Client.exe -client
 - Left click fires a semi-auto bullet.
 - Four hits defeat a player.
 - The server logs `Set winner` after one player dies.
+
+## Build From Command Line
+
+```powershell
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.15f1\Editor\Unity.exe' -batchmode -quit -projectPath . -executeMethod Rounds2.Editor.Rounds2Build.BuildWindowsClient
+& 'C:\Program Files\Unity\Hub\Editor\6000.3.15f1\Editor\Unity.exe' -batchmode -quit -projectPath . -executeMethod Rounds2.Editor.Rounds2Build.BuildWindowsServer
+```
+
+`BuildWindowsServer` fails until Windows Dedicated Server Build Support is installed for this Unity version.
