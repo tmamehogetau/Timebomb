@@ -32,6 +32,14 @@ Builds\Client\Rounds2Client.exe -client
 - Four hits defeat a player.
 - The server logs `Set winner` after one player dies.
 
+Run the automated connection smoke test after building the client:
+
+```powershell
+.\scripts\local-smoke.ps1
+```
+
+This starts one hidden client build as the temporary server and two hidden client builds as clients. It checks the logs for `Arena01` load and two player spawns.
+
 ## Build From Command Line
 
 ```powershell
