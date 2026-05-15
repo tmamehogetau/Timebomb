@@ -1,0 +1,16 @@
+{
+    "name": "Rounds2.Runtime",
+    "rootNamespace": "Rounds2",
+    "references": [
+        "FishNet.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

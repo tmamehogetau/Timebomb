@@ -1,0 +1,21 @@
+{
+    "name": "Rounds2.EditMode.Tests",
+    "rootNamespace": "Rounds2.Tests.EditMode",
+    "references": [
+        "Rounds2.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "noEngineReferences": false
+}
