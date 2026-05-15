@@ -1,5 +1,8 @@
 using FishNet.Managing;
+using FishNet.Object;
+using Rounds2.Combat;
 using Rounds2.Networking;
+using Rounds2.Player;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -29,6 +32,31 @@ namespace Rounds2.Editor
             CreateCanvas(bootstrap);
 
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/Bootstrap.unity");
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        public static void CreatePlayerPrefab()
+        {
+            GameObject playerObject = new("Player");
+            playerObject.AddComponent<NetworkObject>();
+
+            Rigidbody2D body = playerObject.AddComponent<Rigidbody2D>();
+            body.gravityScale = 0f;
+            body.freezeRotation = true;
+
+            CircleCollider2D collider = playerObject.AddComponent<CircleCollider2D>();
+            collider.radius = 0.45f;
+
+            SpriteRenderer renderer = playerObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = CreateUnitSprite();
+            renderer.color = new Color(0.2f, 0.8f, 1f, 1f);
+
+            playerObject.AddComponent<Health>();
+            playerObject.AddComponent<PlayerController>();
+
+            PrefabUtility.SaveAsPrefabAsset(playerObject, "Assets/Prefabs/Player.prefab");
+            Object.DestroyImmediate(playerObject);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
@@ -110,6 +138,37 @@ namespace Rounds2.Editor
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        }
+
+        private static Sprite CreateUnitSprite()
+        {
+            const string assetPath = "Assets/Prefabs/PlayerUnitSprite.png";
+            Texture2D texture = new(32, 32, TextureFormat.RGBA32, false);
+            Color clear = new(0f, 0f, 0f, 0f);
+            Color fill = Color.white;
+            Vector2 center = new(15.5f, 15.5f);
+
+            for (int y = 0; y < texture.height; y++)
+            {
+                for (int x = 0; x < texture.width; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x, y), center);
+                    texture.SetPixel(x, y, distance <= 14f ? fill : clear);
+                }
+            }
+
+            texture.Apply();
+            byte[] png = texture.EncodeToPNG();
+            System.IO.File.WriteAllBytes(assetPath, png);
+            Object.DestroyImmediate(texture);
+
+            AssetDatabase.ImportAsset(assetPath);
+            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spritePixelsPerUnit = 32f;
+            importer.SaveAndReimport();
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
         }
     }
 }
