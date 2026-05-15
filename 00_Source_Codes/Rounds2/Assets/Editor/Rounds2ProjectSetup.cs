@@ -95,6 +95,18 @@ namespace Rounds2.Editor
             AssetDatabase.Refresh();
         }
 
+        public static void ConfigureBuildSettings()
+        {
+            EditorBuildSettings.scenes = new[]
+            {
+                new EditorBuildSettingsScene("Assets/Scenes/Bootstrap.unity", enabled: true),
+                new EditorBuildSettingsScene("Assets/Scenes/Arena01.unity", enabled: true)
+            };
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
         private static NetworkManager CreateNetworkManager()
         {
             foreach (string path in NetworkManagerPrefabPaths)
