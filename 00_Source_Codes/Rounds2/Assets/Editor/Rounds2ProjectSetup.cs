@@ -1,6 +1,7 @@
 using FishNet.Managing;
 using FishNet.Object;
 using Rounds2.Combat;
+using Rounds2.Match;
 using Rounds2.Networking;
 using Rounds2.Player;
 using UnityEditor;
@@ -74,6 +75,24 @@ namespace Rounds2.Editor
             AssetDatabase.Refresh();
         }
 
+        public static void CreateArenaScene()
+        {
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            scene.name = "Arena01";
+
+            NetworkManager networkManager = CreateNetworkManager();
+            CreateBootstrap(networkManager);
+            SetManager setManager = CreateSetManager();
+            Transform[] spawnPoints = CreateSpawnPoints();
+            CreatePlayerSpawnManager(networkManager, setManager, spawnPoints);
+            CreateArenaCamera();
+            CreateArenaBounds();
+
+            EditorSceneManager.SaveScene(scene, "Assets/Scenes/Arena01.unity");
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
         private static NetworkManager CreateNetworkManager()
         {
             foreach (string path in NetworkManagerPrefabPaths)
@@ -120,6 +139,81 @@ namespace Rounds2.Editor
 
             CreateButton(canvas.transform, "Start Server", new Vector2(0f, 40f), bootstrap.StartServer);
             CreateButton(canvas.transform, "Start Client", new Vector2(0f, -20f), bootstrap.StartClient);
+        }
+
+        private static SetManager CreateSetManager()
+        {
+            GameObject setManagerObject = new("SetManager");
+            return setManagerObject.AddComponent<SetManager>();
+        }
+
+        private static Transform[] CreateSpawnPoints()
+        {
+            Transform spawnA = CreateSpawnPoint("SpawnA", new Vector3(-4f, 0f, 0f));
+            Transform spawnB = CreateSpawnPoint("SpawnB", new Vector3(4f, 0f, 0f));
+            return new[] { spawnA, spawnB };
+        }
+
+        private static Transform CreateSpawnPoint(string name, Vector3 position)
+        {
+            GameObject spawnObject = new(name);
+            spawnObject.transform.position = position;
+            return spawnObject.transform;
+        }
+
+        private static void CreatePlayerSpawnManager(NetworkManager networkManager, SetManager setManager, Transform[] spawnPoints)
+        {
+            GameObject managerObject = new("PlayerSpawnManager");
+            PlayerSpawnManager spawnManager = managerObject.AddComponent<PlayerSpawnManager>();
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+
+            SerializedObject serializedSpawnManager = new(spawnManager);
+            serializedSpawnManager.FindProperty("networkManager").objectReferenceValue = networkManager;
+            serializedSpawnManager.FindProperty("playerPrefab").objectReferenceValue = playerPrefab.GetComponent<NetworkObject>();
+            serializedSpawnManager.FindProperty("setManager").objectReferenceValue = setManager;
+
+            SerializedProperty serializedSpawnPoints = serializedSpawnManager.FindProperty("spawnPoints");
+            serializedSpawnPoints.arraySize = spawnPoints.Length;
+            for (int i = 0; i < spawnPoints.Length; i++)
+            {
+                serializedSpawnPoints.GetArrayElementAtIndex(i).objectReferenceValue = spawnPoints[i];
+            }
+
+            serializedSpawnManager.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void CreateArenaCamera()
+        {
+            GameObject cameraObject = new("Main Camera");
+            Camera camera = cameraObject.AddComponent<Camera>();
+            camera.orthographic = true;
+            camera.orthographicSize = 5.5f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.05f, 0.06f, 0.07f, 1f);
+            cameraObject.tag = "MainCamera";
+            cameraObject.transform.position = new Vector3(0f, 0f, -10f);
+        }
+
+        private static void CreateArenaBounds()
+        {
+            Sprite wallSprite = CreateSquareSprite("Assets/Prefabs/ArenaWallSprite.png");
+            CreateWall("TopWall", new Vector3(0f, 5.1f, 0f), new Vector3(10.5f, 0.3f, 1f), wallSprite);
+            CreateWall("BottomWall", new Vector3(0f, -5.1f, 0f), new Vector3(10.5f, 0.3f, 1f), wallSprite);
+            CreateWall("LeftWall", new Vector3(-5.1f, 0f, 0f), new Vector3(0.3f, 10.5f, 1f), wallSprite);
+            CreateWall("RightWall", new Vector3(5.1f, 0f, 0f), new Vector3(0.3f, 10.5f, 1f), wallSprite);
+        }
+
+        private static void CreateWall(string name, Vector3 position, Vector3 scale, Sprite sprite)
+        {
+            GameObject wallObject = new(name);
+            wallObject.transform.position = position;
+            wallObject.transform.localScale = scale;
+
+            SpriteRenderer renderer = wallObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.color = new Color(0.35f, 0.38f, 0.42f, 1f);
+
+            wallObject.AddComponent<BoxCollider2D>();
         }
 
         private static void CreateButton(Transform parent, string label, Vector2 anchoredPosition, UnityEngine.Events.UnityAction action)
@@ -261,6 +355,33 @@ namespace Rounds2.Editor
             TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
             importer.textureType = TextureImporterType.Sprite;
             importer.spritePixelsPerUnit = size;
+            importer.SaveAndReimport();
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+        }
+
+        private static Sprite CreateSquareSprite(string assetPath)
+        {
+            Texture2D texture = new(8, 8, TextureFormat.RGBA32, false);
+            Color fill = Color.white;
+
+            for (int y = 0; y < texture.height; y++)
+            {
+                for (int x = 0; x < texture.width; x++)
+                {
+                    texture.SetPixel(x, y, fill);
+                }
+            }
+
+            texture.Apply();
+            byte[] png = texture.EncodeToPNG();
+            System.IO.File.WriteAllBytes(assetPath, png);
+            Object.DestroyImmediate(texture);
+
+            AssetDatabase.ImportAsset(assetPath);
+            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spritePixelsPerUnit = 8f;
             importer.SaveAndReimport();
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
