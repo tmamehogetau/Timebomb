@@ -102,5 +102,109 @@ namespace Rounds2.Tests.EditMode
             Assert.IsTrue(source.Contains("SetTickRate(NetworkTuning.TickRate)", StringComparison.Ordinal));
             Assert.IsTrue(source.Contains("SetPhysicsMode(PhysicsMode.TimeManager)", StringComparison.Ordinal));
         }
+
+        [Test]
+        public void PredictedMotorCombinesExternalForceInsideReplicate()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PredictedPlayerMotor.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("PlayerExternalForceQueue", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("movementVelocity", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("PlayerMotion.SmoothMoveVelocity", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("ConsumeTickVelocity()", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("movementVelocity + externalVelocity", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("ApplyExternalForceTargetRpc", StringComparison.Ordinal));
+            Assert.IsFalse(source.Contains("ApplyExternalForceObserversRpc", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void PredictionDataReconcilesSmoothedMoveVelocity()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PlayerPredictionData.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("public Vector2 MoveVelocity", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("Vector2 moveVelocity", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("MoveVelocity = moveVelocity", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void PredictedMotorReconcilesMovementInertiaState()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PredictedPlayerMotor.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("new(predictedBody, aimDirection, movementVelocity)", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("movementVelocity = data.MoveVelocity", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("movementVelocity = Vector2.zero", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void PredictedMotorSynchronizesAimForRemoteAimIndicators()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PredictedPlayerMotor.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("SyncVar<Vector2> syncedAimDirection", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("syncedAimDirection.UpdateSendRate(0f)", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("syncedAimDirection.OnChange +=", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("OnSyncedAimDirectionChanged", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("SyncAimDirectionServerRpc", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("syncedAimDirection.Value = normalizedAim", StringComparison.Ordinal));
+            Assert.IsFalse(source.Contains("SyncAimDirectionObserversRpc", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("lastSentAimDirection", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("AimSyncIntervalSeconds", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("lastAimSyncTimeSeconds", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void PredictedMotorSmoothsRemoteAimIndicatorLocally()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PredictedPlayerMotor.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("displayAimDirection", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("targetAimDirection", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("AimIndicatorFollowSpeed", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("UpdateRemoteAimIndicator", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("Vector2.Lerp(displayAimDirection, targetAimDirection", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void PredictedMotorDoesNotOverwriteRemoteAimFromPredictionTicks()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PredictedPlayerMotor.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("private bool ShouldApplyPredictedAim() => IsOwner || IsServerInitialized", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("if (ShouldApplyPredictedAim())", StringComparison.Ordinal));
+            Assert.GreaterOrEqual(CountOccurrences(source, "if (ShouldApplyPredictedAim())"), 2);
+        }
+
+        [Test]
+        public void BulletHitAppliesPredictedKnockbackToTargets()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Combat", "Bullet.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("PredictedPlayerMotor", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("ApplyExternalForce", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("CombatTuning.BulletKnockbackSpeed", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("CombatTuning.BulletKnockbackDurationTicks", StringComparison.Ordinal));
+        }
+
+        private static int CountOccurrences(string source, string value)
+        {
+            int count = 0;
+            int index = 0;
+            while ((index = source.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                index += value.Length;
+            }
+
+            return count;
+        }
     }
 }

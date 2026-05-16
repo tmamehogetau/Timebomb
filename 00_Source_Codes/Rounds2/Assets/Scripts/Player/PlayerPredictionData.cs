@@ -27,12 +27,14 @@ namespace Rounds2.Player
     {
         public PredictionRigidbody2D Body;
         public Vector2 Aim;
+        public Vector2 MoveVelocity;
         private uint tick;
 
-        public PlayerReconcileData(PredictionRigidbody2D body, Vector2 aim)
+        public PlayerReconcileData(PredictionRigidbody2D body, Vector2 aim, Vector2 moveVelocity)
         {
             Body = body;
             Aim = aim;
+            MoveVelocity = moveVelocity;
             tick = 0;
         }
 

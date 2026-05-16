@@ -59,7 +59,7 @@ namespace Rounds2.Combat
 
             Vector2 aim = requestedAim.sqrMagnitude > 0.001f ? requestedAim.normalized : player.AimDirection;
             Vector2 serverSpawn = WeaponSpawnPoint.FromShooter(transform.position, aim);
-            Vector2 spawn = WeaponSpawnPoint.ResolveRequestedSpawn(serverSpawn, requestedSpawn);
+            Vector2 spawn = WeaponSpawnPoint.ResolveRequestedSpawn(serverSpawn, requestedSpawn, aim);
 
             Bullet bullet = Instantiate(bulletPrefab, spawn, Quaternion.identity);
             bullet.Launch(NetworkObject, aim);

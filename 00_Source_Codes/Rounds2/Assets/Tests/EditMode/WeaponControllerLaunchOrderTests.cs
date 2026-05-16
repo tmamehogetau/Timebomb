@@ -41,7 +41,20 @@ namespace Rounds2.Tests.EditMode
             string bulletSource = File.ReadAllText(bulletPath);
 
             Assert.IsFalse(bulletSource.Contains("[Server]\r\n        private void OnTriggerEnter2D", StringComparison.Ordinal));
-            Assert.IsTrue(bulletSource.Contains("if (!IsServer)", StringComparison.Ordinal));
+            Assert.IsTrue(bulletSource.Contains("if (!IsServerInitialized)", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void BulletUsesCollisionAsPrimaryLifetime()
+        {
+            string bulletPath = Path.Combine(Application.dataPath, "Scripts", "Combat", "Bullet.cs");
+            string bulletSource = File.ReadAllText(bulletPath);
+
+            Assert.IsFalse(bulletSource.Contains("CombatTuning.BulletLifetimeSeconds", StringComparison.Ordinal));
+            Assert.IsTrue(bulletSource.Contains("CombatTuning.BulletLeakSafetyLifetimeSeconds", StringComparison.Ordinal));
+            Assert.IsTrue(bulletSource.Contains("GetComponentInParent<Health>()", StringComparison.Ordinal));
+            Assert.IsTrue(bulletSource.Contains("if (!IsServerInitialized)", StringComparison.Ordinal));
+            Assert.IsTrue(bulletSource.Contains("Despawn();", StringComparison.Ordinal));
         }
 
         [Test]
