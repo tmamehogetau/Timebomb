@@ -42,6 +42,12 @@ namespace Rounds2.Match
             score.AddPlayer();
             health.Changed += OnHealthChanged;
             health.Died += OnPlayerDied;
+            WeaponController weapon = health.GetComponent<WeaponController>();
+            if (weapon != null)
+            {
+                weapon.AmmoChanged += OnWeaponAmmoChanged;
+            }
+
             Debug.Log($"Rounds2 registered player {health.name} with HP {health.Current}.");
             UpdateScoreHud();
             UpdateHealthHud();
@@ -49,6 +55,12 @@ namespace Rounds2.Match
 
         [Server]
         private void OnHealthChanged(Health health)
+        {
+            UpdateHealthHud();
+        }
+
+        [Server]
+        private void OnWeaponAmmoChanged(WeaponController weapon)
         {
             UpdateHealthHud();
         }
@@ -169,7 +181,17 @@ namespace Rounds2.Match
         {
             int leftHealth = players.Count > 0 ? players[0].Current : CombatTuning.BaseHealth;
             int rightHealth = players.Count > 1 ? players[1].Current : CombatTuning.BaseHealth;
-            string text = HealthHudText.Format(leftHealth, rightHealth, CombatTuning.BaseHealth);
+            WeaponController leftWeapon = GetWeapon(0);
+            WeaponController rightWeapon = GetWeapon(1);
+            string text = HealthHudText.Format(
+                leftHealth,
+                rightHealth,
+                CombatTuning.BaseHealth,
+                GetCurrentAmmo(leftWeapon),
+                GetCurrentAmmo(rightWeapon),
+                CombatTuning.MagazineSize,
+                leftWeapon != null && leftWeapon.IsReloading,
+                rightWeapon != null && rightWeapon.IsReloading);
 
             if (IsSpawned)
             {
@@ -179,6 +201,16 @@ namespace Rounds2.Match
             {
                 HealthHud.SetHealthText(text);
             }
+        }
+
+        private WeaponController GetWeapon(int playerIndex)
+        {
+            return playerIndex < players.Count ? players[playerIndex].GetComponent<WeaponController>() : null;
+        }
+
+        private static int GetCurrentAmmo(WeaponController weapon)
+        {
+            return weapon != null ? weapon.CurrentAmmo : CombatTuning.MagazineSize;
         }
 
         [Server]
@@ -199,6 +231,7 @@ namespace Rounds2.Match
             private readonly Health health;
             private readonly Rigidbody2D body;
             private readonly PlayerController controller;
+            private readonly WeaponController weapon;
             private readonly Vector3 spawnPosition;
             private readonly Quaternion spawnRotation;
 
@@ -209,6 +242,7 @@ namespace Rounds2.Match
                 this.health = health;
                 body = health.GetComponent<Rigidbody2D>();
                 controller = health.GetComponent<PlayerController>();
+                weapon = health.GetComponent<WeaponController>();
                 Transform source = spawnPoint != null ? spawnPoint : health.transform;
                 spawnPosition = source.position;
                 spawnRotation = source.rotation;
@@ -225,6 +259,7 @@ namespace Rounds2.Match
                     PlayerRoundReset.Apply(health.transform, body, spawnPosition, spawnRotation);
                 }
 
+                weapon?.ResetAmmo();
                 health.ResetHealth();
             }
         }

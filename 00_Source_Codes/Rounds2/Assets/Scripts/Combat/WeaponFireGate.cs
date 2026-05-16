@@ -6,15 +6,30 @@ namespace Rounds2.Combat
     {
         private float nextAllowedTime = float.NegativeInfinity;
 
+        public bool CanConsumeShot(float currentTime)
+        {
+            return currentTime >= nextAllowedTime;
+        }
+
+        public void ConsumeShot(float currentTime)
+        {
+            nextAllowedTime = currentTime + CombatTuning.FireIntervalSeconds;
+        }
+
         public bool TryConsumeShot(float currentTime)
         {
-            if (currentTime < nextAllowedTime)
+            if (!CanConsumeShot(currentTime))
             {
                 return false;
             }
 
-            nextAllowedTime = currentTime + CombatTuning.FireIntervalSeconds;
+            ConsumeShot(currentTime);
             return true;
+        }
+
+        public void Reset()
+        {
+            nextAllowedTime = float.NegativeInfinity;
         }
     }
 }

@@ -1,20 +1,29 @@
 using FishNet.Object;
+using Rounds2.Config;
 using Rounds2.Development;
 using Rounds2.Match;
 using Rounds2.Player;
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Rounds2.Combat
 {
+    [DisallowMultipleComponent]
     public sealed class WeaponController : NetworkBehaviour
     {
         [SerializeField] private Bullet bulletPrefab;
         [SerializeField] private Transform muzzle;
 
         private readonly WeaponFireGate fireGate = new();
+        private readonly WeaponAmmoState ammo = new(CombatTuning.MagazineSize, CombatTuning.ReloadSeconds);
         private PlayerController player;
         private Health health;
+
+        public event Action<WeaponController> AmmoChanged;
+
+        public int CurrentAmmo => ammo.CurrentAmmo;
+        public bool IsReloading => ammo.IsReloading;
 
         private void Awake()
         {
@@ -24,6 +33,11 @@ namespace Rounds2.Combat
 
         private void Update()
         {
+            if (IsServerInitialized && ammo.UpdateReload(Time.time))
+            {
+                NotifyAmmoChanged();
+            }
+
             Mouse mouse = Mouse.current;
             if (!IsOwner || DevelopmentRuntimeOptions.BotEnabled || mouse == null || !mouse.leftButton.wasPressedThisFrame)
             {
@@ -48,14 +62,19 @@ namespace Rounds2.Combat
         [ServerRpc]
         private void FireServerRpc(Vector2 requestedSpawn, Vector2 requestedAim)
         {
+            float currentTime = Time.time;
             if (bulletPrefab == null
                 || muzzle == null
                 || player == null
                 || !WeaponFireRules.CanFire(RoundCombatGate.IsOpen, health != null && health.IsDead)
-                || !fireGate.TryConsumeShot(Time.time))
+                || !fireGate.CanConsumeShot(currentTime)
+                || !ammo.TryConsumeShot(currentTime))
             {
                 return;
             }
+
+            fireGate.ConsumeShot(currentTime);
+            NotifyAmmoChanged();
 
             Vector2 aim = requestedAim.sqrMagnitude > 0.001f ? requestedAim.normalized : player.AimDirection;
             Vector2 serverSpawn = WeaponSpawnPoint.FromShooter(transform.position, aim);
@@ -64,6 +83,19 @@ namespace Rounds2.Combat
             Bullet bullet = Instantiate(bulletPrefab, spawn, Quaternion.identity);
             bullet.Launch(NetworkObject, aim);
             Spawn(bullet.gameObject);
+        }
+
+        [Server]
+        public void ResetAmmo()
+        {
+            ammo.Reset();
+            fireGate.Reset();
+            NotifyAmmoChanged();
+        }
+
+        private void NotifyAmmoChanged()
+        {
+            AmmoChanged?.Invoke(this);
         }
     }
 }

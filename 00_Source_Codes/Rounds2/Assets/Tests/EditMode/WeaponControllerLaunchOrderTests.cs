@@ -67,5 +67,53 @@ namespace Rounds2.Tests.EditMode
             Assert.IsTrue(weaponSource.Contains("RoundCombatGate.IsOpen", StringComparison.Ordinal));
             Assert.IsTrue(weaponSource.Contains("health.IsDead", StringComparison.Ordinal));
         }
+
+        [Test]
+        public void FireServerRpcConsumesAmmoOnlyAfterFireGateAllowsShot()
+        {
+            string weaponPath = Path.Combine(Application.dataPath, "Scripts", "Combat", "WeaponController.cs");
+            string weaponSource = File.ReadAllText(weaponPath);
+
+            Assert.IsTrue(weaponSource.Contains("WeaponAmmoState", StringComparison.Ordinal));
+            Assert.IsTrue(weaponSource.Contains("fireGate.CanConsumeShot(currentTime)", StringComparison.Ordinal));
+            Assert.IsTrue(weaponSource.Contains("ammo.TryConsumeShot(currentTime)", StringComparison.Ordinal));
+            Assert.IsTrue(weaponSource.Contains("fireGate.ConsumeShot(currentTime)", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void WeaponControllerPublishesAmmoChangesAndCanResetAmmo()
+        {
+            string weaponPath = Path.Combine(Application.dataPath, "Scripts", "Combat", "WeaponController.cs");
+            string weaponSource = File.ReadAllText(weaponPath);
+
+            Assert.IsTrue(weaponSource.Contains("AmmoChanged", StringComparison.Ordinal));
+            Assert.IsTrue(weaponSource.Contains("CurrentAmmo", StringComparison.Ordinal));
+            Assert.IsTrue(weaponSource.Contains("IsReloading", StringComparison.Ordinal));
+            Assert.IsTrue(weaponSource.Contains("ResetAmmo", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void SetManagerRefreshesHudWhenAmmoChanges()
+        {
+            string setManagerPath = Path.Combine(Application.dataPath, "Scripts", "Match", "SetManager.cs");
+            string setManagerSource = File.ReadAllText(setManagerPath);
+
+            Assert.IsTrue(setManagerSource.Contains("GetComponent<WeaponController>()", StringComparison.Ordinal));
+            Assert.IsTrue(setManagerSource.Contains("weapon.AmmoChanged += OnWeaponAmmoChanged", StringComparison.Ordinal));
+            Assert.IsTrue(setManagerSource.Contains("WeaponController weapon", StringComparison.Ordinal));
+            Assert.IsTrue(setManagerSource.Contains("HealthHudText.Format", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void ArenaHealthHudHasRoomForAmmoAndReloadingText()
+        {
+            string setupPath = Path.Combine(Application.dataPath, "Editor", "Rounds2ProjectSetup.cs");
+            string scenePath = Path.Combine(Application.dataPath, "Scenes", "Arena01.unity");
+            string setupSource = File.ReadAllText(setupPath);
+            string sceneSource = File.ReadAllText(scenePath);
+
+            Assert.IsTrue(setupSource.Contains("textRect.sizeDelta = new Vector2(760f, 40f)", StringComparison.Ordinal));
+            Assert.IsTrue(sceneSource.Contains("m_SizeDelta: {x: 760, y: 40}", StringComparison.Ordinal));
+        }
     }
 }

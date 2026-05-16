@@ -8,7 +8,7 @@ namespace Rounds2.Development
     [DisallowMultipleComponent]
     public sealed class PlayerDevelopmentShortcuts : NetworkBehaviour
     {
-        private static readonly Rect StatusRect = new(16f, 76f, 360f, 28f);
+        private static readonly Vector2 StatusSize = new(360f, 28f);
 
         private void Update()
         {
@@ -42,7 +42,8 @@ namespace Rounds2.Development
                 return;
             }
 
-            GUI.Label(StatusRect, DevelopmentRuntimeOptions.StatusText);
+            Rect statusRect = new(16f, Screen.height - 44f, StatusSize.x, StatusSize.y);
+            GUI.Label(statusRect, DevelopmentRuntimeOptions.StatusText);
         }
 
         [ServerRpc]

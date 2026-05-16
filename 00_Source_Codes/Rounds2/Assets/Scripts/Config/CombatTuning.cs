@@ -5,6 +5,8 @@ namespace Rounds2.Config
         public const int BaseHealth = 100;
         public const int BulletDamage = 25;
         public const float FireIntervalSeconds = 0.75f;
+        public const int MagazineSize = 6;
+        public const float ReloadSeconds = 1.5f;
         public const float BulletSpeed = 12f;
         public const float BulletLeakSafetyLifetimeSeconds = 30f;
         public const float BulletKnockbackSpeed = BulletSpeed * 0.8f;

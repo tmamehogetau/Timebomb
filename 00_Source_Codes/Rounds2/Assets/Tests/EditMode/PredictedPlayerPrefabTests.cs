@@ -1,6 +1,7 @@
 using FishNet.Component.Transforming;
 using FishNet.Object;
 using NUnit.Framework;
+using Rounds2.Combat;
 using Rounds2.Player;
 using UnityEditor;
 using UnityEngine;
@@ -36,6 +37,14 @@ namespace Rounds2.Tests.EditMode
             Assert.IsTrue(serializedObject.FindProperty("_enablePrediction").boolValue);
             Assert.AreEqual(2, serializedObject.FindProperty("_predictionType").intValue);
             Assert.IsTrue(serializedObject.FindProperty("_enableStateForwarding").boolValue);
+        }
+
+        [Test]
+        public void PlayerPrefabHasSingleWeaponController()
+        {
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+
+            Assert.AreEqual(1, playerPrefab.GetComponents<WeaponController>().Length);
         }
     }
 }

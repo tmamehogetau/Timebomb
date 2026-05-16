@@ -144,7 +144,6 @@ GameObject:
   - component: {fileID: 8201602793547164301}
   - component: {fileID: 6052677421016729305}
   - component: {fileID: 6426661323246798073}
-  - component: {fileID: 3393870243157012518}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -482,20 +481,3 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   ownerColor: {r: 0.35, g: 1, b: 0.45, a: 1}
   remoteColor: {r: 0.2, g: 0.8, b: 1, a: 1}
---- !u!114 &3393870243157012518
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8662825446937230852}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 19f071e20b7041a8953d1411d59ca295, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Combat.WeaponController
-  _componentIndexCache: 255
-  _addedNetworkObject: {fileID: 1648914893536123869}
-  _networkObjectCache: {fileID: 0}
-  bulletPrefab: {fileID: 0}
-  muzzle: {fileID: 0}

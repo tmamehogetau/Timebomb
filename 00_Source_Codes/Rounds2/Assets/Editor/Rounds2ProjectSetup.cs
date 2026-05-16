@@ -274,15 +274,15 @@ namespace Rounds2.Editor
             textObject.transform.SetParent(canvasObject.transform, false);
 
             RectTransform textRect = textObject.AddComponent<RectTransform>();
-            textRect.anchorMin = new Vector2(0f, 1f);
-            textRect.anchorMax = new Vector2(0f, 1f);
-            textRect.pivot = new Vector2(0f, 1f);
-            textRect.anchoredPosition = new Vector2(16f, -16f);
+            textRect.anchorMin = new Vector2(1f, 1f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.pivot = new Vector2(1f, 1f);
+            textRect.anchoredPosition = new Vector2(-16f, -16f);
             textRect.sizeDelta = new Vector2(220f, 64f);
 
             Text statusText = textObject.AddComponent<Text>();
             statusText.text = DebugHudText.Format(serverStarted: false, clientStarted: false);
-            statusText.alignment = TextAnchor.UpperLeft;
+            statusText.alignment = TextAnchor.UpperRight;
             statusText.color = Color.white;
             statusText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             statusText.fontSize = 18;
@@ -356,10 +356,18 @@ namespace Rounds2.Editor
             textRect.anchorMax = new Vector2(0.5f, 0f);
             textRect.pivot = new Vector2(0.5f, 0f);
             textRect.anchoredPosition = new Vector2(0f, 18f);
-            textRect.sizeDelta = new Vector2(520f, 36f);
+            textRect.sizeDelta = new Vector2(760f, 40f);
 
             Text healthText = textObject.AddComponent<Text>();
-            healthText.text = HealthHudText.Format(CombatTuning.BaseHealth, CombatTuning.BaseHealth, CombatTuning.BaseHealth);
+            healthText.text = HealthHudText.Format(
+                CombatTuning.BaseHealth,
+                CombatTuning.BaseHealth,
+                CombatTuning.BaseHealth,
+                CombatTuning.MagazineSize,
+                CombatTuning.MagazineSize,
+                CombatTuning.MagazineSize,
+                leftReloading: false,
+                rightReloading: false);
             healthText.alignment = TextAnchor.LowerCenter;
             healthText.color = Color.white;
             healthText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -462,6 +470,14 @@ namespace Rounds2.Editor
             if (weapon == null)
             {
                 weapon = playerInstance.AddComponent<WeaponController>();
+            }
+            else
+            {
+                WeaponController[] weapons = playerInstance.GetComponents<WeaponController>();
+                for (int i = 1; i < weapons.Length; i++)
+                {
+                    Object.DestroyImmediate(weapons[i]);
+                }
             }
 
             Transform muzzle = playerInstance.transform.Find("Muzzle");
