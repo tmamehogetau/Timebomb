@@ -66,6 +66,7 @@ namespace Rounds2.Tests.EditMode
             Assert.IsTrue(weaponSource.Contains("WeaponFireRules.CanFire", StringComparison.Ordinal));
             Assert.IsTrue(weaponSource.Contains("RoundCombatGate.IsOpen", StringComparison.Ordinal));
             Assert.IsTrue(weaponSource.Contains("health.IsDead", StringComparison.Ordinal));
+            Assert.IsTrue(weaponSource.Contains("shield.IsShielding", StringComparison.Ordinal));
         }
 
         [Test]
@@ -100,8 +101,26 @@ namespace Rounds2.Tests.EditMode
 
             Assert.IsTrue(setManagerSource.Contains("GetComponent<WeaponController>()", StringComparison.Ordinal));
             Assert.IsTrue(setManagerSource.Contains("weapon.AmmoChanged += OnWeaponAmmoChanged", StringComparison.Ordinal));
+            Assert.IsTrue(setManagerSource.Contains("shield.ShieldChanged += OnShieldChanged", StringComparison.Ordinal));
             Assert.IsTrue(setManagerSource.Contains("WeaponController weapon", StringComparison.Ordinal));
             Assert.IsTrue(setManagerSource.Contains("HealthHudText.Format", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void BulletHitConsumesShieldBeforeDamageAndKnockback()
+        {
+            string bulletPath = Path.Combine(Application.dataPath, "Scripts", "Combat", "Bullet.cs");
+            string bulletSource = File.ReadAllText(bulletPath);
+
+            int shieldIndex = bulletSource.IndexOf("TryConsumeShieldHit", StringComparison.Ordinal);
+            int knockbackIndex = bulletSource.IndexOf("ApplyKnockback(health)", StringComparison.Ordinal);
+            int damageIndex = bulletSource.IndexOf("health.ApplyDamage", StringComparison.Ordinal);
+
+            Assert.GreaterOrEqual(shieldIndex, 0);
+            Assert.GreaterOrEqual(knockbackIndex, 0);
+            Assert.GreaterOrEqual(damageIndex, 0);
+            Assert.Less(shieldIndex, knockbackIndex);
+            Assert.Less(shieldIndex, damageIndex);
         }
 
         [Test]
@@ -112,8 +131,10 @@ namespace Rounds2.Tests.EditMode
             string setupSource = File.ReadAllText(setupPath);
             string sceneSource = File.ReadAllText(scenePath);
 
-            Assert.IsTrue(setupSource.Contains("textRect.sizeDelta = new Vector2(760f, 40f)", StringComparison.Ordinal));
-            Assert.IsTrue(sceneSource.Contains("m_SizeDelta: {x: 760, y: 40}", StringComparison.Ordinal));
+            Assert.IsTrue(setupSource.Contains("textRect.sizeDelta = new Vector2(980f, 40f)", StringComparison.Ordinal));
+            Assert.IsTrue(sceneSource.Contains("m_SizeDelta: {x: 980, y: 40}", StringComparison.Ordinal));
+            Assert.IsTrue(setupSource.Contains("healthText.fontSize = 18", StringComparison.Ordinal));
+            Assert.IsTrue(sceneSource.Contains("m_FontSize: 18", StringComparison.Ordinal));
         }
     }
 }

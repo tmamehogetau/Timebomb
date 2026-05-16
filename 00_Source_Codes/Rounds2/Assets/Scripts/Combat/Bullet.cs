@@ -62,6 +62,16 @@ namespace Rounds2.Combat
             {
                 string ownerName = owner != null ? owner.name : "unknown";
                 Debug.Log($"Rounds2 hit shooter={ownerName} target={health.name} damage={CombatTuning.BulletDamage} bulletPos={FormatPosition(transform.position)} targetPos={FormatPosition(health.transform.position)}");
+                if (health.GetComponent<PlayerShieldController>() is PlayerShieldController shield && shield.TryConsumeShieldHit())
+                {
+                    if (IsSpawned)
+                    {
+                        Despawn();
+                    }
+
+                    return;
+                }
+
                 ApplyKnockback(health);
                 health.ApplyDamage(CombatTuning.BulletDamage);
                 if (IsSpawned)

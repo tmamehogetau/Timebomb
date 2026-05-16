@@ -140,6 +140,7 @@ GameObject:
   - component: {fileID: 2262375954752349556}
   - component: {fileID: 7380217068016824292}
   - component: {fileID: 1464105507050554203}
+  - component: {fileID: 7152484151462469814}
   - component: {fileID: 6764696339720923926}
   - component: {fileID: 8201602793547164301}
   - component: {fileID: 6052677421016729305}
@@ -178,7 +179,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Object.NetworkObject
   _localLevelOfDetailCalculationType: 0
   _useLevelOfDetail: 0
@@ -414,6 +415,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9b451f0be3443348dd767aa9ff3c7a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Player.PlayerController
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 1648914893536123869}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &7152484151462469814
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74a66aa726574e49ae70c8433e066a1b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Player.PlayerShieldController
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 1648914893536123869}
   _networkObjectCache: {fileID: 0}

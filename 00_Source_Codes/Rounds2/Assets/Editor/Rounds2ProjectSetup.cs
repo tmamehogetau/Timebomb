@@ -70,6 +70,7 @@ namespace Rounds2.Editor
             playerObject.AddComponent<PredictedPlayerMotor>();
             playerObject.AddComponent<PlayerInputReader>();
             playerObject.AddComponent<PlayerController>();
+            playerObject.AddComponent<PlayerShieldController>();
             playerObject.AddComponent<PlayerBotController>();
             playerObject.AddComponent<PlayerDevelopmentShortcuts>();
             playerObject.AddComponent<PlayerOwnerVisuals>();
@@ -356,7 +357,7 @@ namespace Rounds2.Editor
             textRect.anchorMax = new Vector2(0.5f, 0f);
             textRect.pivot = new Vector2(0.5f, 0f);
             textRect.anchoredPosition = new Vector2(0f, 18f);
-            textRect.sizeDelta = new Vector2(760f, 40f);
+            textRect.sizeDelta = new Vector2(980f, 40f);
 
             Text healthText = textObject.AddComponent<Text>();
             healthText.text = HealthHudText.Format(
@@ -367,11 +368,13 @@ namespace Rounds2.Editor
                 CombatTuning.MagazineSize,
                 CombatTuning.MagazineSize,
                 leftReloading: false,
-                rightReloading: false);
+                rightReloading: false,
+                "Ready",
+                "Ready");
             healthText.alignment = TextAnchor.LowerCenter;
             healthText.color = Color.white;
             healthText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            healthText.fontSize = 20;
+            healthText.fontSize = 18;
             return healthText;
         }
 

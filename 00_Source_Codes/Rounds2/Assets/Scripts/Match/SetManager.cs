@@ -48,6 +48,12 @@ namespace Rounds2.Match
                 weapon.AmmoChanged += OnWeaponAmmoChanged;
             }
 
+            PlayerShieldController shield = health.GetComponent<PlayerShieldController>();
+            if (shield != null)
+            {
+                shield.ShieldChanged += OnShieldChanged;
+            }
+
             Debug.Log($"Rounds2 registered player {health.name} with HP {health.Current}.");
             UpdateScoreHud();
             UpdateHealthHud();
@@ -61,6 +67,12 @@ namespace Rounds2.Match
 
         [Server]
         private void OnWeaponAmmoChanged(WeaponController weapon)
+        {
+            UpdateHealthHud();
+        }
+
+        [Server]
+        private void OnShieldChanged(PlayerShieldController shield)
         {
             UpdateHealthHud();
         }
@@ -183,6 +195,8 @@ namespace Rounds2.Match
             int rightHealth = players.Count > 1 ? players[1].Current : CombatTuning.BaseHealth;
             WeaponController leftWeapon = GetWeapon(0);
             WeaponController rightWeapon = GetWeapon(1);
+            PlayerShieldController leftShield = GetShield(0);
+            PlayerShieldController rightShield = GetShield(1);
             string text = HealthHudText.Format(
                 leftHealth,
                 rightHealth,
@@ -191,7 +205,9 @@ namespace Rounds2.Match
                 GetCurrentAmmo(rightWeapon),
                 CombatTuning.MagazineSize,
                 leftWeapon != null && leftWeapon.IsReloading,
-                rightWeapon != null && rightWeapon.IsReloading);
+                rightWeapon != null && rightWeapon.IsReloading,
+                GetShieldStatus(leftShield),
+                GetShieldStatus(rightShield));
 
             if (IsSpawned)
             {
@@ -208,9 +224,19 @@ namespace Rounds2.Match
             return playerIndex < players.Count ? players[playerIndex].GetComponent<WeaponController>() : null;
         }
 
+        private PlayerShieldController GetShield(int playerIndex)
+        {
+            return playerIndex < players.Count ? players[playerIndex].GetComponent<PlayerShieldController>() : null;
+        }
+
         private static int GetCurrentAmmo(WeaponController weapon)
         {
             return weapon != null ? weapon.CurrentAmmo : CombatTuning.MagazineSize;
+        }
+
+        private static string GetShieldStatus(PlayerShieldController shield)
+        {
+            return shield != null ? shield.StatusLabel : "Ready";
         }
 
         [Server]
@@ -232,6 +258,7 @@ namespace Rounds2.Match
             private readonly Rigidbody2D body;
             private readonly PlayerController controller;
             private readonly WeaponController weapon;
+            private readonly PlayerShieldController shield;
             private readonly Vector3 spawnPosition;
             private readonly Quaternion spawnRotation;
 
@@ -243,6 +270,7 @@ namespace Rounds2.Match
                 body = health.GetComponent<Rigidbody2D>();
                 controller = health.GetComponent<PlayerController>();
                 weapon = health.GetComponent<WeaponController>();
+                shield = health.GetComponent<PlayerShieldController>();
                 Transform source = spawnPoint != null ? spawnPoint : health.transform;
                 spawnPosition = source.position;
                 spawnRotation = source.rotation;
@@ -260,6 +288,7 @@ namespace Rounds2.Match
                 }
 
                 weapon?.ResetAmmo();
+                shield?.ResetShield();
                 health.ResetHealth();
             }
         }

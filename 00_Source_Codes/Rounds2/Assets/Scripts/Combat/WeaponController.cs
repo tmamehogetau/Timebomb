@@ -18,6 +18,7 @@ namespace Rounds2.Combat
         private readonly WeaponFireGate fireGate = new();
         private readonly WeaponAmmoState ammo = new(CombatTuning.MagazineSize, CombatTuning.ReloadSeconds);
         private PlayerController player;
+        private PlayerShieldController shield;
         private Health health;
 
         public event Action<WeaponController> AmmoChanged;
@@ -28,6 +29,7 @@ namespace Rounds2.Combat
         private void Awake()
         {
             player = GetComponent<PlayerController>();
+            shield = GetComponent<PlayerShieldController>();
             health = GetComponent<Health>();
         }
 
@@ -67,6 +69,7 @@ namespace Rounds2.Combat
                 || muzzle == null
                 || player == null
                 || !WeaponFireRules.CanFire(RoundCombatGate.IsOpen, health != null && health.IsDead)
+                || shield != null && shield.IsShielding
                 || !fireGate.CanConsumeShot(currentTime)
                 || !ammo.TryConsumeShot(currentTime))
             {

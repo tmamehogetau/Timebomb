@@ -7,6 +7,8 @@ namespace Rounds2.Config
         public const float FireIntervalSeconds = 0.75f;
         public const int MagazineSize = 6;
         public const float ReloadSeconds = 1.5f;
+        public const float ShieldActiveSeconds = 0.35f;
+        public const float ShieldCooldownSeconds = 4f;
         public const float BulletSpeed = 12f;
         public const float BulletLeakSafetyLifetimeSeconds = 30f;
         public const float BulletKnockbackSpeed = BulletSpeed * 0.8f;

@@ -46,5 +46,13 @@ namespace Rounds2.Tests.EditMode
 
             Assert.AreEqual(1, playerPrefab.GetComponents<WeaponController>().Length);
         }
+
+        [Test]
+        public void PlayerPrefabHasShieldController()
+        {
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+
+            Assert.IsNotNull(playerPrefab.GetComponent<PlayerShieldController>());
+        }
     }
 }
