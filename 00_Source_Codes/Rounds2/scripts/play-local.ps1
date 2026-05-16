@@ -1,7 +1,8 @@
 param(
     [string]$ExecutablePath = "Builds\Client\Rounds2Client.exe",
     [string]$LogDirectory = "Logs",
-    [int]$ServerWarmupSeconds = 8
+    [int]$ServerWarmupSeconds = 8,
+    [bool]$BotSecondClient = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,8 +30,13 @@ $client1 = Start-Process -FilePath $resolvedExe.Path `
 
 Start-Sleep -Seconds 2
 
+$client2Args = $clientArgs
+if ($BotSecondClient) {
+    $client2Args = $client2Args + @("-bot")
+}
+
 $client2 = Start-Process -FilePath $resolvedExe.Path `
-    -ArgumentList ($clientArgs + @("-logFile", $client2Log)) `
+    -ArgumentList ($client2Args + @("-logFile", $client2Log)) `
     -PassThru
 
 @($server.Id, $client1.Id, $client2.Id) | Set-Content -Path $pidFile

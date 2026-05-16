@@ -31,6 +31,97 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1940317943441667471}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6748998182972846737
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6308571337826647999}
+  - component: {fileID: 608117550413828821}
+  m_Layer: 0
+  m_Name: AimIndicator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6308571337826647999
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6748998182972846737}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.025, y: 0, z: 0}
+  m_LocalScale: {x: 0.95, y: 0.08, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1940317943441667471}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &608117550413828821
+SpriteRenderer:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6748998182972846737}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 2
+  m_MaskInteraction: 0
+  m_Sprite: {fileID: 4305181316023090155, guid: 785edd33f8945b24c977759a787e776b, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.78}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 1, y: 1}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_SpriteSortPoint: 0
 --- !u!1 &8662825446937230852
 GameObject:
   m_ObjectHideFlags: 0
@@ -44,9 +135,16 @@ GameObject:
   - component: {fileID: 1092671020013599399}
   - component: {fileID: 7086688563260594838}
   - component: {fileID: 5622115467981442142}
+  - component: {fileID: 8240308315193406572}
   - component: {fileID: 4536175839575128710}
+  - component: {fileID: 2262375954752349556}
+  - component: {fileID: 7380217068016824292}
   - component: {fileID: 1464105507050554203}
   - component: {fileID: 6764696339720923926}
+  - component: {fileID: 8201602793547164301}
+  - component: {fileID: 6052677421016729305}
+  - component: {fileID: 6426661323246798073}
+  - component: {fileID: 3393870243157012518}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -67,6 +165,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 6308571337826647999}
   - {fileID: 6824969042745479732}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -86,8 +185,8 @@ MonoBehaviour:
   _useLevelOfDetail: 0
   _useRootLevelOfDetail: 1
   NetworkObserver: {fileID: 0}
-  _enablePrediction: 0
-  _predictionType: 0
+  _enablePrediction: 1
+  _predictionType: 2
   _localReconcileCorrectionType: 2
   _graphicalObject: {fileID: 0}
   _detachGraphicalObject: 0
@@ -95,9 +194,9 @@ MonoBehaviour:
   _networkTransform: {fileID: 0}
   _ownerInterpolation: 1
   _ownerSmoothedProperties: 255
-  _adaptiveInterpolation: 3
+  _adaptiveInterpolation: 0
   _spectatorSmoothedProperties: 255
-  _spectatorInterpolation: 2
+  _spectatorInterpolation: 1
   _enableTeleport: 0
   _teleportThreshold: 1
   <PrefabId>k__BackingField: 65535
@@ -152,7 +251,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 4
 --- !u!58 &7086688563260594838
 CircleCollider2D:
@@ -249,6 +348,18 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &8240308315193406572
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72d596e872e24c87b209e90135ebe447, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Combat.HealthVisuals
 --- !u!114 &4536175839575128710
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -264,6 +375,34 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 1648914893536123869}
   _networkObjectCache: {fileID: 0}
+--- !u!114 &2262375954752349556
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c12da7d018d13164e858de1c9e634b4e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Player.PredictedPlayerMotor
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 1648914893536123869}
+  _networkObjectCache: {fileID: 0}
+  _tickCallbacks: 6
+--- !u!114 &7380217068016824292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 311f275987d38aa4887bac949c1107a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Player.PlayerInputReader
 --- !u!114 &1464105507050554203
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -296,3 +435,67 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   bulletPrefab: {fileID: 626265357005816060, guid: b5b0d7ae3522cc342a515cc61b03afc4, type: 3}
   muzzle: {fileID: 6824969042745479732}
+--- !u!114 &8201602793547164301
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f82abda3e43c4ceca86b7ec8c2528829, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Player.PlayerBotController
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 1648914893536123869}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &6052677421016729305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57bda6cb42a44d4f868765dcf51fd69c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Development.PlayerDevelopmentShortcuts
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 1648914893536123869}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &6426661323246798073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22bed727585deae45847694c9bd547cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Player.PlayerOwnerVisuals
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 1648914893536123869}
+  _networkObjectCache: {fileID: 0}
+  ownerColor: {r: 0.35, g: 1, b: 0.45, a: 1}
+  remoteColor: {r: 0.2, g: 0.8, b: 1, a: 1}
+--- !u!114 &3393870243157012518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8662825446937230852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19f071e20b7041a8953d1411d59ca295, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Rounds2.Runtime::Rounds2.Combat.WeaponController
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 1648914893536123869}
+  _networkObjectCache: {fileID: 0}
+  bulletPrefab: {fileID: 0}
+  muzzle: {fileID: 0}

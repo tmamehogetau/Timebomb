@@ -28,5 +28,18 @@ namespace Rounds2.Networking
 
             return clientRequested ? BootstrapLaunchMode.Client : BootstrapLaunchMode.None;
         }
+
+        public static bool BotEnabled(string[] args)
+        {
+            foreach (string arg in args)
+            {
+                if (arg == "-bot")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

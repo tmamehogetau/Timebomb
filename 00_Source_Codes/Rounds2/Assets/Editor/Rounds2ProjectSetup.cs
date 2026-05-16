@@ -1,7 +1,12 @@
 using FishNet.Component.Spawning;
+using FishNet.Component.Transforming;
 using FishNet.Managing;
+using FishNet.Managing.Predicting;
+using FishNet.Managing.Timing;
 using FishNet.Object;
 using Rounds2.Combat;
+using Rounds2.Config;
+using Rounds2.Development;
 using Rounds2.Match;
 using Rounds2.Networking;
 using Rounds2.Player;
@@ -43,11 +48,15 @@ namespace Rounds2.Editor
         public static void CreatePlayerPrefab()
         {
             GameObject playerObject = new("Player");
-            playerObject.AddComponent<NetworkObject>();
+            NetworkObject networkObject = playerObject.AddComponent<NetworkObject>();
+            ConfigureLowLatencyNetworkObject(networkObject);
+            ConfigureRigidbody2DPrediction(networkObject);
 
             Rigidbody2D body = playerObject.AddComponent<Rigidbody2D>();
             body.gravityScale = 0f;
             body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.None;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             CircleCollider2D collider = playerObject.AddComponent<CircleCollider2D>();
             collider.radius = 0.45f;
@@ -56,13 +65,21 @@ namespace Rounds2.Editor
             renderer.sprite = CreateUnitSprite();
             renderer.color = new Color(0.2f, 0.8f, 1f, 1f);
 
+            playerObject.AddComponent<HealthVisuals>();
             playerObject.AddComponent<Health>();
+            playerObject.AddComponent<PredictedPlayerMotor>();
+            playerObject.AddComponent<PlayerInputReader>();
             playerObject.AddComponent<PlayerController>();
+            playerObject.AddComponent<PlayerBotController>();
+            playerObject.AddComponent<PlayerDevelopmentShortcuts>();
+            playerObject.AddComponent<PlayerOwnerVisuals>();
             playerObject.AddComponent<WeaponController>();
+
+            CreateAimIndicator(playerObject.transform);
 
             GameObject muzzleObject = new("Muzzle");
             muzzleObject.transform.SetParent(playerObject.transform, false);
-            muzzleObject.transform.localPosition = new Vector3(0.55f, 0f, 0f);
+            muzzleObject.transform.localPosition = new Vector3(CombatTuning.MuzzleForwardOffset, 0f, 0f);
 
             PrefabUtility.SaveAsPrefabAsset(playerObject, "Assets/Prefabs/Player.prefab");
             Object.DestroyImmediate(playerObject);
@@ -120,11 +137,15 @@ namespace Rounds2.Editor
                 GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 instance.name = "NetworkManager";
                 RemoveDefaultPlayerSpawner(instance);
-                return instance.GetComponent<NetworkManager>();
+                NetworkManager networkManager = instance.GetComponent<NetworkManager>();
+                ConfigureNetworkManagerTiming(networkManager);
+                return networkManager;
             }
 
             GameObject fallback = new("NetworkManager");
-            return fallback.AddComponent<NetworkManager>();
+            NetworkManager fallbackNetworkManager = fallback.AddComponent<NetworkManager>();
+            ConfigureNetworkManagerTiming(fallbackNetworkManager);
+            return fallbackNetworkManager;
         }
 
         private static ConnectionBootstrap CreateBootstrap(NetworkManager networkManager)
@@ -168,6 +189,7 @@ namespace Rounds2.Editor
         private static SetManager CreateSetManager()
         {
             GameObject setManagerObject = new("SetManager");
+            setManagerObject.AddComponent<NetworkObject>();
             return setManagerObject.AddComponent<SetManager>();
         }
 
@@ -270,6 +292,79 @@ namespace Rounds2.Editor
             serializedHud.FindProperty("networkManager").objectReferenceValue = networkManager;
             serializedHud.FindProperty("statusText").objectReferenceValue = statusText;
             serializedHud.ApplyModifiedPropertiesWithoutUndo();
+
+            Text scoreText = CreateScoreText(canvasObject.transform);
+            ScoreHud scoreHud = canvasObject.AddComponent<ScoreHud>();
+            SerializedObject serializedScoreHud = new(scoreHud);
+            serializedScoreHud.FindProperty("scoreText").objectReferenceValue = scoreText;
+            serializedScoreHud.ApplyModifiedPropertiesWithoutUndo();
+
+            Text healthText = CreateHealthText(canvasObject.transform);
+            HealthHud healthHud = canvasObject.AddComponent<HealthHud>();
+            SerializedObject serializedHealthHud = new(healthHud);
+            serializedHealthHud.FindProperty("healthText").objectReferenceValue = healthText;
+            serializedHealthHud.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void CreateAimIndicator(Transform parent)
+        {
+            GameObject indicatorObject = new("AimIndicator");
+            indicatorObject.transform.SetParent(parent, false);
+            indicatorObject.transform.localPosition = new Vector3(
+                CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength * 0.5f,
+                0f,
+                0f);
+            indicatorObject.transform.localScale = new Vector3(
+                CombatTuning.AimIndicatorLength,
+                CombatTuning.AimIndicatorThickness,
+                1f);
+
+            SpriteRenderer renderer = indicatorObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = CreateSquareSprite("Assets/Prefabs/AimIndicatorSprite.png");
+            renderer.color = new Color(1f, 1f, 1f, 0.78f);
+            renderer.sortingOrder = 2;
+        }
+
+        private static Text CreateScoreText(Transform parent)
+        {
+            GameObject textObject = new("ScoreText");
+            textObject.transform.SetParent(parent, false);
+
+            RectTransform textRect = textObject.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0.5f, 1f);
+            textRect.anchorMax = new Vector2(0.5f, 1f);
+            textRect.pivot = new Vector2(0.5f, 1f);
+            textRect.anchoredPosition = new Vector2(0f, -16f);
+            textRect.sizeDelta = new Vector2(320f, 64f);
+
+            Text scoreText = textObject.AddComponent<Text>();
+            scoreText.text = ScoreHudText.Format(0, 0, MatchTuning.RoundWinsToWinMatch, matchFinished: false, winnerLabel: "");
+            scoreText.alignment = TextAnchor.UpperCenter;
+            scoreText.color = Color.white;
+            scoreText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            scoreText.fontSize = 22;
+            return scoreText;
+        }
+
+        private static Text CreateHealthText(Transform parent)
+        {
+            GameObject textObject = new("HealthText");
+            textObject.transform.SetParent(parent, false);
+
+            RectTransform textRect = textObject.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0.5f, 0f);
+            textRect.anchorMax = new Vector2(0.5f, 0f);
+            textRect.pivot = new Vector2(0.5f, 0f);
+            textRect.anchoredPosition = new Vector2(0f, 18f);
+            textRect.sizeDelta = new Vector2(520f, 36f);
+
+            Text healthText = textObject.AddComponent<Text>();
+            healthText.text = HealthHudText.Format(CombatTuning.BaseHealth, CombatTuning.BaseHealth, CombatTuning.BaseHealth);
+            healthText.alignment = TextAnchor.LowerCenter;
+            healthText.color = Color.white;
+            healthText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            healthText.fontSize = 20;
+            return healthText;
         }
 
         private static void CreateButton(Transform parent, string label, Vector2 anchoredPosition, UnityEngine.Events.UnityAction action)
@@ -337,7 +432,8 @@ namespace Rounds2.Editor
         private static Bullet CreateBulletPrefab()
         {
             GameObject bulletObject = new("Bullet");
-            bulletObject.AddComponent<NetworkObject>();
+            ConfigureLowLatencyNetworkObject(bulletObject.AddComponent<NetworkObject>());
+            ConfigureServerAuthoritativeTransform(bulletObject.AddComponent<NetworkTransform>(), sendToOwner: true);
 
             Rigidbody2D body = bulletObject.AddComponent<Rigidbody2D>();
             body.gravityScale = 0f;
@@ -373,7 +469,7 @@ namespace Rounds2.Editor
             {
                 GameObject muzzleObject = new("Muzzle");
                 muzzleObject.transform.SetParent(playerInstance.transform, false);
-                muzzleObject.transform.localPosition = new Vector3(0.55f, 0f, 0f);
+                muzzleObject.transform.localPosition = new Vector3(CombatTuning.MuzzleForwardOffset, 0f, 0f);
                 muzzle = muzzleObject.transform;
             }
 
@@ -384,6 +480,54 @@ namespace Rounds2.Editor
 
             PrefabUtility.SaveAsPrefabAsset(playerInstance, "Assets/Prefabs/Player.prefab");
             Object.DestroyImmediate(playerInstance);
+        }
+
+        private static void ConfigureServerAuthoritativeTransform(NetworkTransform networkTransform, bool sendToOwner)
+        {
+            SerializedObject serializedTransform = new(networkTransform);
+            serializedTransform.FindProperty("_clientAuthoritative").boolValue = false;
+            serializedTransform.FindProperty("_sendToOwner").boolValue = sendToOwner;
+            serializedTransform.FindProperty("_interval").intValue = NetworkTuning.TransformSendIntervalTicks;
+            serializedTransform.FindProperty("_interpolation").intValue = NetworkTuning.TransformInterpolationTicks;
+            serializedTransform.FindProperty("_extrapolation").intValue = NetworkTuning.TransformExtrapolationTicks;
+            serializedTransform.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureLowLatencyNetworkObject(NetworkObject networkObject)
+        {
+            SerializedObject serializedObject = new(networkObject);
+            serializedObject.FindProperty("_adaptiveInterpolation").enumValueIndex = (int)AdaptiveInterpolationType.Off;
+            serializedObject.FindProperty("_ownerInterpolation").intValue = NetworkTuning.OwnerInterpolationTicks;
+            serializedObject.FindProperty("_spectatorInterpolation").intValue = NetworkTuning.SpectatorInterpolationTicks;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureRigidbody2DPrediction(NetworkObject networkObject)
+        {
+            SerializedObject serializedObject = new(networkObject);
+            serializedObject.FindProperty("_enablePrediction").boolValue = true;
+            serializedObject.FindProperty("_predictionType").enumValueIndex = 2;
+            serializedObject.FindProperty("_enableStateForwarding").boolValue = true;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ConfigureNetworkManagerTiming(NetworkManager networkManager)
+        {
+            TimeManager timeManager = networkManager.GetComponent<TimeManager>();
+            if (timeManager == null)
+            {
+                timeManager = networkManager.gameObject.AddComponent<TimeManager>();
+            }
+
+            SerializedObject serializedTimeManager = new(timeManager);
+            serializedTimeManager.FindProperty("_tickRate").intValue = NetworkTuning.TickRate;
+            serializedTimeManager.FindProperty("_physicsMode").enumValueIndex = (int)PhysicsMode.TimeManager;
+            serializedTimeManager.ApplyModifiedPropertiesWithoutUndo();
+
+            if (networkManager.GetComponent<PredictionManager>() == null)
+            {
+                networkManager.gameObject.AddComponent<PredictionManager>();
+            }
         }
 
         private static Sprite CreateCircleSprite(string assetPath, int size, float radius)

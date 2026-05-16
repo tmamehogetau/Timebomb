@@ -28,5 +28,12 @@ namespace Rounds2.Tests.EditMode
 
             Assert.AreEqual(BootstrapLaunchMode.None, mode);
         }
+
+        [Test]
+        public void BotEnabledDetectsBotFlag()
+        {
+            Assert.IsTrue(BootstrapLaunchOptions.BotEnabled(new[] { "-client", "-bot" }));
+            Assert.IsFalse(BootstrapLaunchOptions.BotEnabled(new[] { "-client" }));
+        }
     }
 }

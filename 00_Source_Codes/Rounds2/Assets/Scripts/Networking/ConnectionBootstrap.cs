@@ -1,6 +1,8 @@
 using FishNet.Managing;
 using FishNet.Managing.Scened;
+using FishNet.Managing.Timing;
 using FishNet.Transporting;
+using Rounds2.Config;
 using UnityEngine;
 
 namespace Rounds2.Networking
@@ -17,6 +19,27 @@ namespace Rounds2.Networking
             {
                 networkManager = FindFirstObjectByType<NetworkManager>();
             }
+
+            ApplyLowLatencyRuntimeSettings();
+        }
+
+        private void ApplyLowLatencyRuntimeSettings()
+        {
+            Time.fixedDeltaTime = NetworkTuning.FixedDeltaTime;
+
+            if (networkManager == null)
+            {
+                return;
+            }
+
+            TimeManager timeManager = networkManager.TimeManager ?? networkManager.GetComponent<TimeManager>();
+            if (timeManager == null)
+            {
+                return;
+            }
+
+            timeManager.SetTickRate(NetworkTuning.TickRate);
+            timeManager.SetPhysicsMode(PhysicsMode.TimeManager);
         }
 
         private void OnEnable()

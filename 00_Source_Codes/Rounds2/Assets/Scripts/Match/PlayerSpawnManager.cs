@@ -64,7 +64,7 @@ namespace Rounds2.Match
             Health health = player.GetComponent<Health>();
             if (health != null && setManager != null)
             {
-                setManager.RegisterPlayer(health);
+                setManager.RegisterPlayer(health, spawnPoint);
             }
         }
 

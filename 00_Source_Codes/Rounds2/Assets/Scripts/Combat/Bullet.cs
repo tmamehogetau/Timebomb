@@ -8,36 +8,73 @@ namespace Rounds2.Combat
     public sealed class Bullet : NetworkBehaviour
     {
         private Rigidbody2D body;
+        private Collider2D[] colliders;
         private NetworkObject owner;
 
         private void Awake()
         {
-            body = GetComponent<Rigidbody2D>();
+            CacheComponents();
         }
 
-        [Server]
         public void Launch(NetworkObject firingOwner, Vector2 direction)
         {
+            CacheComponents();
             owner = firingOwner;
-            body.linearVelocity = direction.normalized * CombatTuning.BulletSpeed;
+            IgnoreOwnerCollisions();
+            ApplyLaunchVelocity(direction);
         }
 
-        [Server]
+        private void ApplyLaunchVelocity(Vector2 direction)
+        {
+            Vector2 launchDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.right;
+            body.linearVelocity = launchDirection * CombatTuning.BulletSpeed;
+        }
+
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (owner != null && other.TryGetComponent(out NetworkObject hitObject) && hitObject == owner)
+            if (!IsServer)
             {
                 return;
             }
 
-            if (other.TryGetComponent(out Health health))
+            if (owner != null && other.GetComponentInParent<NetworkObject>() == owner)
             {
+                return;
+            }
+
+            if (other.GetComponentInParent<Health>() is Health health)
+            {
+                string ownerName = owner != null ? owner.name : "unknown";
+                Debug.Log($"Rounds2 hit shooter={ownerName} target={health.name} damage={CombatTuning.BulletDamage} bulletPos={FormatPosition(transform.position)} targetPos={FormatPosition(health.transform.position)}");
                 health.ApplyDamage(CombatTuning.BulletDamage);
-                Despawn();
+                if (IsSpawned)
+                {
+                    Despawn();
+                }
+
                 return;
             }
 
-            Despawn();
+            if (IsSpawned)
+            {
+                Despawn();
+            }
+        }
+
+        private void CacheComponents()
+        {
+            body ??= gameObject.GetComponent<Rigidbody2D>();
+            colliders ??= gameObject.GetComponents<Collider2D>();
+        }
+
+        private void IgnoreOwnerCollisions()
+        {
+            BulletOwnerCollision.Ignore(colliders, owner);
+        }
+
+        private static string FormatPosition(Vector3 position)
+        {
+            return $"({position.x:0.00},{position.y:0.00})";
         }
     }
 }
