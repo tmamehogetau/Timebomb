@@ -5,12 +5,17 @@ namespace Rounds2.Player
 {
     public sealed class PlayerShieldState
     {
-        private readonly float activeSeconds;
-        private readonly float cooldownSeconds;
+        private float activeSeconds;
+        private float cooldownSeconds;
         private float shieldEndsAt = float.NegativeInfinity;
         private float cooldownEndsAt = float.NegativeInfinity;
 
         public PlayerShieldState(float activeSeconds, float cooldownSeconds)
+        {
+            Configure(activeSeconds, cooldownSeconds);
+        }
+
+        private void Configure(float activeSeconds, float cooldownSeconds)
         {
             if (activeSeconds < 0f)
             {
@@ -68,6 +73,12 @@ namespace Rounds2.Player
         {
             shieldEndsAt = float.NegativeInfinity;
             cooldownEndsAt = float.NegativeInfinity;
+        }
+
+        public void Reset(float activeSeconds, float cooldownSeconds)
+        {
+            Configure(activeSeconds, cooldownSeconds);
+            Reset();
         }
     }
 }

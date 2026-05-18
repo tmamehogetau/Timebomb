@@ -6,6 +6,7 @@ using FishNet.Transporting;
 using FishNet.Utility.Template;
 using Rounds2.Config;
 using Rounds2.Development;
+using Rounds2.Match;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -20,12 +21,18 @@ namespace Rounds2.Player
 
         private Rigidbody2D body;
         private Transform aimIndicator;
+        private Transform muzzleFlash;
+        private SpriteRenderer muzzleFlashRenderer;
         private Vector2 moveInput;
         private Vector2 movementVelocity;
         private Vector2 aimDirection = Vector2.right;
         private Vector2 displayAimDirection = Vector2.right;
         private Vector2 targetAimDirection = Vector2.right;
+        private Vector2 fireFeedbackAimDirection = Vector2.right;
         private Vector2 lastSentAimDirection = Vector2.right;
+        private bool fireFeedbackActive;
+        private float fireFeedbackRecoilUntilSeconds;
+        private float muzzleFlashUntilSeconds;
         private float lastAimSyncTimeSeconds;
 
         private const float AimIndicatorFollowSpeed = 18f;
@@ -38,6 +45,9 @@ namespace Rounds2.Player
         {
             body = GetComponent<Rigidbody2D>();
             aimIndicator = transform.Find("AimIndicator");
+            muzzleFlash = transform.Find("MuzzleFlash");
+            muzzleFlashRenderer = muzzleFlash != null ? muzzleFlash.GetComponent<SpriteRenderer>() : null;
+            ApplyMuzzleFlash();
             predictedBody.Initialize(body);
             syncedAimDirection.UpdateSendRate(0f);
             syncedAimDirection.OnChange += OnSyncedAimDirectionChanged;
@@ -50,6 +60,8 @@ namespace Rounds2.Player
             {
                 UpdateRemoteAimIndicator();
             }
+
+            UpdateFireFeedbackVisuals();
         }
 
         public override void OnStartNetwork()
@@ -87,7 +99,9 @@ namespace Rounds2.Player
                 return default;
             }
 
-            Vector2 move = DevelopmentRuntimeOptions.BotEnabled ? moveInput : ReadMoveInput(Keyboard.current);
+            Vector2 move = RoundCombatGate.IsOpen
+                ? (DevelopmentRuntimeOptions.BotEnabled ? moveInput : ReadMoveInput(Keyboard.current))
+                : Vector2.zero;
             return new PlayerReplicateData(move, aimDirection, fire: false);
         }
 
@@ -179,8 +193,22 @@ namespace Rounds2.Player
             Vector2 resetAim = rotation * Vector2.right;
             SetAimDirection(resetAim.sqrMagnitude > 0.001f ? resetAim : Vector2.right, snapDisplay: true);
             lastSentAimDirection = aimDirection;
+            fireFeedbackActive = false;
+            fireFeedbackRecoilUntilSeconds = 0f;
+            muzzleFlashUntilSeconds = 0f;
             PlayerRoundReset.Apply(transform, body, position, rotation);
             predictedBody.ClearVelocities();
+            ApplyMuzzleFlash();
+        }
+
+        public void PlayFireFeedback(Vector2 aim)
+        {
+            fireFeedbackAimDirection = aim.sqrMagnitude > 0.001f ? aim.normalized : displayAimDirection;
+            fireFeedbackActive = true;
+            fireFeedbackRecoilUntilSeconds = Time.time + CombatTuning.FireFeedbackRecoilSeconds;
+            muzzleFlashUntilSeconds = Time.time + CombatTuning.MuzzleFlashSeconds;
+            ApplyAimIndicator();
+            ApplyMuzzleFlash();
         }
 
         private void TrySyncAimDirection()
@@ -253,9 +281,63 @@ namespace Rounds2.Player
             }
 
             Vector3 localDirection = new(displayAimDirection.x, displayAimDirection.y, 0f);
-            float distance = CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength * 0.5f;
+            float distance = CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength * 0.5f - CurrentFireFeedbackRecoil();
             aimIndicator.localPosition = localDirection * distance;
             aimIndicator.localRotation = Quaternion.Euler(0f, 0f, PlayerMotion.AimAngleDegrees(displayAimDirection));
+        }
+
+        private void UpdateFireFeedbackVisuals()
+        {
+            if (!fireFeedbackActive)
+            {
+                return;
+            }
+
+            ApplyAimIndicator();
+            ApplyMuzzleFlash();
+            if (Time.time >= fireFeedbackRecoilUntilSeconds && Time.time >= muzzleFlashUntilSeconds)
+            {
+                fireFeedbackActive = false;
+            }
+        }
+
+        private float CurrentFireFeedbackRecoil()
+        {
+            if (Time.time >= fireFeedbackRecoilUntilSeconds)
+            {
+                return 0f;
+            }
+
+            float remaining = Mathf.Clamp01((fireFeedbackRecoilUntilSeconds - Time.time) / CombatTuning.FireFeedbackRecoilSeconds);
+            return CombatTuning.FireFeedbackRecoilDistance * remaining;
+        }
+
+        private void ApplyMuzzleFlash()
+        {
+            if (muzzleFlash == null)
+            {
+                return;
+            }
+
+            bool visible = Time.time < muzzleFlashUntilSeconds;
+            muzzleFlash.gameObject.SetActive(visible);
+            if (!visible)
+            {
+                return;
+            }
+
+            Vector3 localDirection = new(fireFeedbackAimDirection.x, fireFeedbackAimDirection.y, 0f);
+            float remaining = Mathf.Clamp01((muzzleFlashUntilSeconds - Time.time) / CombatTuning.MuzzleFlashSeconds);
+            muzzleFlash.localPosition = localDirection * CombatTuning.BulletSpawnForwardOffset;
+            muzzleFlash.localScale = Vector3.one * CombatTuning.MuzzleFlashScale;
+            muzzleFlash.localRotation = Quaternion.Euler(0f, 0f, PlayerMotion.AimAngleDegrees(fireFeedbackAimDirection));
+
+            if (muzzleFlashRenderer != null)
+            {
+                Color color = muzzleFlashRenderer.color;
+                color.a = 0.65f * remaining;
+                muzzleFlashRenderer.color = color;
+            }
         }
 
         private static Vector2 ReadMoveInput(Keyboard keyboard)

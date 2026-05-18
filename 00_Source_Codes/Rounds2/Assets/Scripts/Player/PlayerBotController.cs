@@ -14,9 +14,11 @@ namespace Rounds2.Player
         private WeaponController weapon;
         private bool loggedEnabled;
         private float nextAllowedFireTimeSeconds;
+        private float nextDraftChoiceAttemptSeconds;
 
         private const float InitialFireDelaySeconds = 2f;
         private const float FireIntervalSeconds = 2.4f;
+        private const float DraftChoiceRetrySeconds = 1f;
 
         private void Awake()
         {
@@ -39,6 +41,8 @@ namespace Rounds2.Player
                 Debug.Log($"Rounds2 bot enabled for {name}.");
             }
 
+            TrySubmitDraftChoice();
+
             if (!TryFindTarget(out Vector2 targetPosition))
             {
                 player.SubmitOwnerInput(Vector2.zero, player.AimDirection);
@@ -53,6 +57,17 @@ namespace Rounds2.Player
                 weapon.TryFire(command.Aim);
                 nextAllowedFireTimeSeconds = Time.time + FireIntervalSeconds;
             }
+        }
+
+        private void TrySubmitDraftChoice()
+        {
+            if (Time.time < nextDraftChoiceAttemptSeconds)
+            {
+                return;
+            }
+
+            player.SubmitDraftChoice(0);
+            nextDraftChoiceAttemptSeconds = Time.time + DraftChoiceRetrySeconds;
         }
 
         private bool TryFindTarget(out Vector2 targetPosition)

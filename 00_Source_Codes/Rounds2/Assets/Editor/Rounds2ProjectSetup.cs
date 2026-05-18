@@ -64,19 +64,25 @@ namespace Rounds2.Editor
             SpriteRenderer renderer = playerObject.AddComponent<SpriteRenderer>();
             renderer.sprite = CreateUnitSprite();
             renderer.color = new Color(0.2f, 0.8f, 1f, 1f);
+            GameObject shieldVisual = CreateShieldVisual(playerObject.transform, renderer.sprite);
 
             playerObject.AddComponent<HealthVisuals>();
             playerObject.AddComponent<Health>();
             playerObject.AddComponent<PredictedPlayerMotor>();
             playerObject.AddComponent<PlayerInputReader>();
             playerObject.AddComponent<PlayerController>();
-            playerObject.AddComponent<PlayerShieldController>();
+            PlayerShieldController shield = playerObject.AddComponent<PlayerShieldController>();
+            SerializedObject serializedShield = new(shield);
+            serializedShield.FindProperty("shieldVisual").objectReferenceValue = shieldVisual;
+            serializedShield.ApplyModifiedPropertiesWithoutUndo();
+            playerObject.AddComponent<PlayerStatusDisplay>();
             playerObject.AddComponent<PlayerBotController>();
             playerObject.AddComponent<PlayerDevelopmentShortcuts>();
             playerObject.AddComponent<PlayerOwnerVisuals>();
             playerObject.AddComponent<WeaponController>();
 
             CreateAimIndicator(playerObject.transform);
+            CreateMuzzleFlash(playerObject.transform);
 
             GameObject muzzleObject = new("Muzzle");
             muzzleObject.transform.SetParent(playerObject.transform, false);
@@ -326,6 +332,34 @@ namespace Rounds2.Editor
             renderer.sortingOrder = 2;
         }
 
+        private static void CreateMuzzleFlash(Transform parent)
+        {
+            GameObject flashObject = new("MuzzleFlash");
+            flashObject.transform.SetParent(parent, false);
+            flashObject.transform.localPosition = new Vector3(CombatTuning.BulletSpawnForwardOffset, 0f, 0f);
+            flashObject.transform.localScale = Vector3.one * CombatTuning.MuzzleFlashScale;
+            flashObject.SetActive(false);
+
+            SpriteRenderer renderer = flashObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = CreateSquareSprite("Assets/Prefabs/AimIndicatorSprite.png");
+            renderer.color = new Color(1f, 0.9f, 0.55f, 0.65f);
+            renderer.sortingOrder = 4;
+        }
+
+        private static GameObject CreateShieldVisual(Transform parent, Sprite sprite)
+        {
+            GameObject shieldObject = new("ShieldVisual");
+            shieldObject.transform.SetParent(parent, false);
+            shieldObject.transform.localScale = new Vector3(1.45f, 1.45f, 1f);
+            shieldObject.SetActive(false);
+
+            SpriteRenderer renderer = shieldObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.color = new Color(0.35f, 0.95f, 1f, 0.42f);
+            renderer.sortingOrder = 3;
+            return shieldObject;
+        }
+
         private static Text CreateScoreText(Transform parent)
         {
             GameObject textObject = new("ScoreText");
@@ -336,14 +370,14 @@ namespace Rounds2.Editor
             textRect.anchorMax = new Vector2(0.5f, 1f);
             textRect.pivot = new Vector2(0.5f, 1f);
             textRect.anchoredPosition = new Vector2(0f, -16f);
-            textRect.sizeDelta = new Vector2(320f, 64f);
+            textRect.sizeDelta = new Vector2(860f, 96f);
 
             Text scoreText = textObject.AddComponent<Text>();
             scoreText.text = ScoreHudText.Format(0, 0, MatchTuning.RoundWinsToWinMatch, matchFinished: false, winnerLabel: "");
             scoreText.alignment = TextAnchor.UpperCenter;
             scoreText.color = Color.white;
             scoreText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            scoreText.fontSize = 22;
+            scoreText.fontSize = 20;
             return scoreText;
         }
 
@@ -455,7 +489,7 @@ namespace Rounds2.Editor
             collider.isTrigger = true;
 
             SpriteRenderer renderer = bulletObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = CreateCircleSprite("Assets/Prefabs/BulletSprite.png", 16, 7f);
+            renderer.sprite = CreateCircleSprite("Assets/Prefabs/BulletSprite.png", 16, 7f, pixelsPerUnit: 64f);
             renderer.color = new Color(1f, 0.92f, 0.25f, 1f);
 
             Bullet bullet = bulletObject.AddComponent<Bullet>();
@@ -549,7 +583,7 @@ namespace Rounds2.Editor
             }
         }
 
-        private static Sprite CreateCircleSprite(string assetPath, int size, float radius)
+        private static Sprite CreateCircleSprite(string assetPath, int size, float radius, float pixelsPerUnit)
         {
             Texture2D texture = new(size, size, TextureFormat.RGBA32, false);
             Color clear = new(0f, 0f, 0f, 0f);
@@ -573,7 +607,7 @@ namespace Rounds2.Editor
             AssetDatabase.ImportAsset(assetPath);
             TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
             importer.textureType = TextureImporterType.Sprite;
-            importer.spritePixelsPerUnit = size;
+            importer.spritePixelsPerUnit = pixelsPerUnit;
             importer.SaveAndReimport();
 
             return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);

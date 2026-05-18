@@ -1,5 +1,7 @@
 using Rounds2.Networking;
 
+using Rounds2.Cards;
+
 namespace Rounds2.Development
 {
     public static class DevelopmentRuntimeOptions
@@ -7,6 +9,7 @@ namespace Rounds2.Development
         private static DevelopmentShortcutState state;
 
         public static bool BotEnabled => State.BotEnabled;
+        public static CardId SelectedCard => State.SelectedCard;
         public static string StatusText => DevelopmentShortcutStatusText.Format(State);
 
         private static DevelopmentShortcutState State
@@ -21,6 +24,11 @@ namespace Rounds2.Development
         public static bool ToggleBot()
         {
             return State.ToggleBot();
+        }
+
+        public static CardId SelectNextCard()
+        {
+            return State.SelectNextCard();
         }
     }
 }

@@ -24,13 +24,17 @@ Builds\Client\Rounds2Client.exe -client
 
 ## Current Smoke Test
 
+The MVP smoke target is:
+
 - Server starts.
 - Two clients connect to the local server.
-- Both clients see both players.
-- Players move with WASD and aim with the mouse.
-- Left click fires a semi-auto bullet.
-- Four hits defeat a player.
-- The server logs `Set winner` after one player dies.
+- Combat starts on `Arena01`.
+- Players can shoot, reload, shield, damage, and die.
+- The server logs set and round winners.
+- Loser-side draft occurs after round loss.
+- Card rewards apply to later combat.
+- A match reaches `Match winner`.
+- Logs do not contain matched runtime errors.
 
 Run the automated connection smoke test after building the client:
 
@@ -39,6 +43,28 @@ Run the automated connection smoke test after building the client:
 ```
 
 This starts one hidden client build as the temporary server and two hidden client builds as clients. It checks the logs for `Arena01` load and two player spawns.
+
+For a longer Bot-based MVP smoke run, start two Bot clients:
+
+```powershell
+.\scripts\play-local.ps1 -BotSecondClient $true
+```
+
+Then watch these logs:
+
+```powershell
+Select-String -Path Logs\local-play-server.log -Pattern 'Set winner|Round winner|Card draft|Card reward|Match winner'
+Select-String -Path Logs\local-play-server.log,Logs\local-play-client-1.log,Logs\local-play-client-2.log -Pattern 'Exception|InvalidOperationException|Cannot complete action|error CS|\bError\b'
+```
+
+The accepted MVP smoke run on 2026-05-18 reached match end during a 10 minute Bot run with:
+
+- 9 set winners
+- 7 round winners
+- 6 card drafts
+- 6 card rewards
+- 1 match winner
+- 0 matched runtime errors
 
 For manual playtesting with visible client windows:
 

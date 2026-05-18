@@ -2,7 +2,11 @@ using FishNet.Object;
 using NUnit.Framework;
 using Rounds2.Combat;
 using Rounds2.Config;
+using System;
+using System.IO;
+using System.Reflection;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Rounds2.Tests.EditMode
 {
@@ -51,6 +55,47 @@ namespace Rounds2.Tests.EditMode
 
             Object.DestroyImmediate(bulletObject);
             Object.DestroyImmediate(ownerObject);
+        }
+
+        [Test]
+        public void RicochetRestoresOwnerCollision()
+        {
+            GameObject ownerObject = new("Owner");
+            NetworkObject owner = ownerObject.AddComponent<NetworkObject>();
+            Collider2D ownerCollider = ownerObject.AddComponent<CircleCollider2D>();
+
+            GameObject bulletObject = new("Bullet");
+            bulletObject.AddComponent<Rigidbody2D>();
+            Collider2D bulletCollider = bulletObject.AddComponent<CircleCollider2D>();
+            Bullet bullet = bulletObject.AddComponent<Bullet>();
+
+            GameObject wallObject = new("Wall");
+            wallObject.transform.position = new Vector2(1f, 0f);
+            wallObject.AddComponent<BoxCollider2D>();
+
+            bullet.Launch(owner, Vector2.right, damageMultiplier: 1f, speedMultiplier: 1f, projectileBounces: 1);
+            Assert.IsTrue(Physics2D.GetIgnoreCollision(bulletCollider, ownerCollider));
+
+            MethodInfo tryRicochet = typeof(Bullet).GetMethod("TryRicochet", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(tryRicochet);
+            bool bounced = (bool)tryRicochet.Invoke(bullet, new object[] { wallObject.GetComponent<Collider2D>() });
+
+            Assert.IsTrue(bounced);
+            Assert.IsFalse(Physics2D.GetIgnoreCollision(bulletCollider, ownerCollider));
+
+            Object.DestroyImmediate(wallObject);
+            Object.DestroyImmediate(bulletObject);
+            Object.DestroyImmediate(ownerObject);
+        }
+
+        [Test]
+        public void RicochetAllowsOwnerTriggerAfterBounce()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Combat", "Bullet.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("if (!canHitOwnerAfterRicochet && owner != null", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("canHitOwnerAfterRicochet = true;", StringComparison.Ordinal));
         }
     }
 }

@@ -7,6 +7,16 @@ namespace Rounds2.Combat
     {
         public static void Ignore(Collider2D[] bulletColliders, NetworkObject owner)
         {
+            SetIgnored(bulletColliders, owner, ignored: true);
+        }
+
+        public static void Restore(Collider2D[] bulletColliders, NetworkObject owner)
+        {
+            SetIgnored(bulletColliders, owner, ignored: false);
+        }
+
+        private static void SetIgnored(Collider2D[] bulletColliders, NetworkObject owner, bool ignored)
+        {
             if (bulletColliders == null || owner == null)
             {
                 return;
@@ -24,7 +34,7 @@ namespace Rounds2.Combat
                 {
                     if (ownerCollider != null)
                     {
-                        Physics2D.IgnoreCollision(bulletCollider, ownerCollider, true);
+                        Physics2D.IgnoreCollision(bulletCollider, ownerCollider, ignored);
                     }
                 }
             }

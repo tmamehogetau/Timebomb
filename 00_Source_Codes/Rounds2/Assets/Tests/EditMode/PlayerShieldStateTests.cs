@@ -50,5 +50,19 @@ namespace Rounds2.Tests.EditMode
             Assert.IsTrue(shield.IsReady(10.1f));
             Assert.AreEqual(0f, shield.CooldownRemaining(10.1f), 0.001f);
         }
+
+        [Test]
+        public void ResetCanApplyCardModifiedShieldTiming()
+        {
+            PlayerShieldState shield = new(activeSeconds: 0.35f, cooldownSeconds: 4f);
+
+            shield.Reset(activeSeconds: 0.5f, cooldownSeconds: 3f);
+            shield.TryActivate(10f);
+
+            Assert.IsTrue(shield.IsShielding(10.49f));
+            Assert.IsFalse(shield.IsShielding(10.51f));
+            Assert.IsFalse(shield.IsReady(12.99f));
+            Assert.IsTrue(shield.IsReady(13f));
+        }
     }
 }

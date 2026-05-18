@@ -58,6 +58,16 @@ namespace Rounds2.Tests.EditMode
         }
 
         [Test]
+        public void PredictedMotorBlocksMoveInputWhenRoundCombatGateIsClosed()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PredictedPlayerMotor.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("RoundCombatGate.IsOpen", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("Vector2 move = RoundCombatGate.IsOpen", StringComparison.Ordinal));
+        }
+
+        [Test]
         public void PlayerInputReaderFeedsPredictedMotorWithoutOwningMovementSimulation()
         {
             string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PlayerInputReader.cs");
@@ -169,6 +179,21 @@ namespace Rounds2.Tests.EditMode
             Assert.IsTrue(source.Contains("AimIndicatorFollowSpeed", StringComparison.Ordinal));
             Assert.IsTrue(source.Contains("UpdateRemoteAimIndicator", StringComparison.Ordinal));
             Assert.IsTrue(source.Contains("Vector2.Lerp(displayAimDirection, targetAimDirection", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void PredictedMotorOwnsSubtleFireFeedback()
+        {
+            string sourcePath = Path.Combine(Application.dataPath, "Scripts", "Player", "PredictedPlayerMotor.cs");
+            string source = File.ReadAllText(sourcePath);
+
+            Assert.IsTrue(source.Contains("MuzzleFlash", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("PlayFireFeedback", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("CombatTuning.FireFeedbackRecoilDistance", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("CombatTuning.FireFeedbackRecoilSeconds", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("CombatTuning.MuzzleFlashSeconds", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("CombatTuning.MuzzleFlashScale", StringComparison.Ordinal));
+            Assert.IsTrue(source.Contains("ApplyMuzzleFlash", StringComparison.Ordinal));
         }
 
         [Test]

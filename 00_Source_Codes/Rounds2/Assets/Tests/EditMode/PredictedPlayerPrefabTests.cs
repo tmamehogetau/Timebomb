@@ -3,6 +3,7 @@ using FishNet.Object;
 using NUnit.Framework;
 using Rounds2.Combat;
 using Rounds2.Player;
+using Rounds2.UI;
 using UnityEditor;
 using UnityEngine;
 
@@ -53,6 +54,29 @@ namespace Rounds2.Tests.EditMode
             GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
 
             Assert.IsNotNull(playerPrefab.GetComponent<PlayerShieldController>());
+        }
+
+        [Test]
+        public void PlayerPrefabHasInactiveShieldVisual()
+        {
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+            Transform shieldVisual = playerPrefab.transform.Find("ShieldVisual");
+
+            Assert.IsNotNull(shieldVisual);
+            Assert.IsFalse(shieldVisual.gameObject.activeSelf);
+
+            SpriteRenderer shieldRenderer = shieldVisual.GetComponent<SpriteRenderer>();
+            Assert.IsNotNull(shieldRenderer);
+            Assert.Greater(shieldVisual.localScale.x, playerPrefab.transform.localScale.x);
+            Assert.Greater(shieldRenderer.sortingOrder, playerPrefab.GetComponent<SpriteRenderer>().sortingOrder);
+        }
+
+        [Test]
+        public void PlayerPrefabHasWorldStatusDisplay()
+        {
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+
+            Assert.IsNotNull(playerPrefab.GetComponent<PlayerStatusDisplay>());
         }
     }
 }

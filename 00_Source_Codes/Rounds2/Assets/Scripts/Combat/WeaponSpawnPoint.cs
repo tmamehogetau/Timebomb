@@ -14,7 +14,12 @@ namespace Rounds2.Combat
         public static Vector2 ResolveRequestedSpawn(Vector2 serverSpawn, Vector2 requestedSpawn, Vector2 aimDirection)
         {
             float maxDistance = CombatTuning.FireSpawnPredictionTolerance;
-            return Vector2.Distance(serverSpawn, requestedSpawn) <= maxDistance ? requestedSpawn : serverSpawn;
+            if (Vector2.Distance(serverSpawn, requestedSpawn) > maxDistance)
+            {
+                return serverSpawn;
+            }
+
+            return requestedSpawn;
         }
     }
 }

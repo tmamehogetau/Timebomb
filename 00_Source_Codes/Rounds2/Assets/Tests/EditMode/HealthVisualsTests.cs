@@ -43,6 +43,26 @@ namespace Rounds2.Tests.EditMode
             Object.DestroyImmediate(player);
         }
 
+        [Test]
+        public void PlayDamageFeedbackBrieflyLightensOnlyBodyRenderer()
+        {
+            GameObject player = new("Player");
+            SpriteRenderer renderer = player.AddComponent<SpriteRenderer>();
+            renderer.color = new Color(0.2f, 0.8f, 1f, 1f);
+            SpriteRenderer childRenderer = CreateChildRenderer(player);
+            childRenderer.color = Color.white;
+            HealthVisuals visuals = player.AddComponent<HealthVisuals>();
+
+            visuals.PlayDamageFeedback();
+
+            Assert.Greater(renderer.color.r, 0.2f);
+            Assert.Greater(renderer.color.g, 0.8f);
+            Assert.AreEqual(1f, childRenderer.color.a, 0.001f);
+            Assert.AreEqual(Color.white, childRenderer.color);
+
+            Object.DestroyImmediate(player);
+        }
+
         private static SpriteRenderer CreateChildRenderer(GameObject parent)
         {
             GameObject child = new("AimIndicator");

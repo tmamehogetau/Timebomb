@@ -11,18 +11,18 @@ namespace Rounds2.Tests.EditMode
         public void FromShooterPlacesBulletOnAimLine()
         {
             Vector2 spawn = WeaponSpawnPoint.FromShooter(new Vector2(2f, 3f), Vector2.up);
-            float expectedForwardOffset = CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength * 0.5f;
+            float expectedForwardOffset = CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength;
 
             Assert.AreEqual(new Vector2(2f, 3f + expectedForwardOffset), spawn);
             Assert.Greater(expectedForwardOffset, CombatTuning.MuzzleForwardOffset);
-            Assert.Less(expectedForwardOffset, CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength);
+            Assert.AreEqual(CombatTuning.BulletSpawnForwardOffset, expectedForwardOffset, 0.001f);
         }
 
         [Test]
         public void FromShooterNormalizesAimDirection()
         {
             Vector2 spawn = WeaponSpawnPoint.FromShooter(Vector2.zero, new Vector2(0f, 10f));
-            float expectedForwardOffset = CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength * 0.5f;
+            float expectedForwardOffset = CombatTuning.MuzzleForwardOffset + CombatTuning.AimIndicatorLength;
 
             Assert.AreEqual(new Vector2(0f, expectedForwardOffset), spawn);
         }
@@ -46,7 +46,7 @@ namespace Rounds2.Tests.EditMode
         }
 
         [Test]
-        public void ResolveRequestedSpawnKeepsNearbyOwnerPredictionDuringSideMovement()
+        public void ResolveRequestedSpawnPreservesNearbyOwnerPredictionDuringSideMovement()
         {
             Vector2 serverSpawn = new(2f, 3f);
             Vector2 requestedSpawn = serverSpawn + new Vector2(0.75f, 0.25f);

@@ -34,5 +34,23 @@ namespace Rounds2.Tests.EditMode
             float indicatorStartX = indicator.localPosition.x - indicator.localScale.x * 0.5f;
             Assert.AreEqual(muzzle.localPosition.x, indicatorStartX, 0.001f);
         }
+
+        [Test]
+        public void PlayerPrefabHasSubtleInactiveMuzzleFlashAtTurretTip()
+        {
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Player.prefab");
+            Transform flash = playerPrefab.transform.Find("MuzzleFlash");
+
+            Assert.IsNotNull(flash);
+            Assert.IsFalse(flash.gameObject.activeSelf);
+            Assert.AreEqual(1.3f, flash.localPosition.x, 0.001f);
+            Assert.LessOrEqual(flash.localScale.x, 0.14f);
+
+            SpriteRenderer flashRenderer = flash.GetComponent<SpriteRenderer>();
+            SpriteRenderer aimRenderer = playerPrefab.transform.Find("AimIndicator").GetComponent<SpriteRenderer>();
+            Assert.IsNotNull(flashRenderer);
+            Assert.Greater(flashRenderer.sortingOrder, aimRenderer.sortingOrder);
+            Assert.LessOrEqual(flashRenderer.color.a, 0.7f);
+        }
     }
 }

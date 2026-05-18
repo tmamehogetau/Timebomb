@@ -6,7 +6,7 @@ namespace Rounds2.Combat
 {
     public sealed class Health : NetworkBehaviour
     {
-        private readonly HealthState state = new();
+        private HealthState state = new();
         private HealthVisuals visuals;
 
         public event Action<Health> Changed;
@@ -17,23 +17,30 @@ namespace Rounds2.Combat
 
         private void Awake()
         {
+            EnsureState();
             visuals = GetComponent<HealthVisuals>();
         }
 
         public override void OnStartServer()
         {
             base.OnStartServer();
-            ResetHealth();
+            ResetHealthCore();
         }
 
         [Server]
         public void ResetHealth()
         {
+            ResetHealthCore();
+        }
+
+        internal void ResetHealthCore(bool syncObservers = true)
+        {
+            EnsureState();
             state.Reset(CombatTuning.BaseHealth);
             SetAliveVisualState(true);
             Changed?.Invoke(this);
 
-            if (IsSpawned)
+            if (syncObservers && UnityEngine.Application.isPlaying && IsSpawned)
             {
                 SetAliveVisualStateObserversRpc(true);
             }
@@ -42,6 +49,7 @@ namespace Rounds2.Combat
         [Server]
         public void ApplyDamage(int amount)
         {
+            EnsureState();
             if (amount <= 0 || IsDead)
             {
                 return;
@@ -51,7 +59,7 @@ namespace Rounds2.Combat
             {
                 Changed?.Invoke(this);
 
-                if (IsSpawned)
+                if (UnityEngine.Application.isPlaying && IsSpawned)
                 {
                     SetAliveVisualStateObserversRpc(false);
                 }
@@ -66,7 +74,35 @@ namespace Rounds2.Combat
             }
 
             Changed?.Invoke(this);
+            PlayDamageFeedback();
             UnityEngine.Debug.Log($"Rounds2 {name} took {amount} damage. HP: {Current}. pos={FormatPosition(transform.position)}");
+        }
+
+        private void PlayDamageFeedback()
+        {
+            if (visuals == null)
+            {
+                visuals = GetComponent<HealthVisuals>();
+            }
+
+            if (UnityEngine.Application.isPlaying && IsSpawned)
+            {
+                PlayDamageFeedbackObserversRpc();
+                return;
+            }
+
+            visuals?.PlayDamageFeedback();
+        }
+
+        [ObserversRpc(RunLocally = true)]
+        private void PlayDamageFeedbackObserversRpc()
+        {
+            if (visuals == null)
+            {
+                visuals = GetComponent<HealthVisuals>();
+            }
+
+            visuals?.PlayDamageFeedback();
         }
 
         [ObserversRpc(BufferLast = true, RunLocally = true)]
@@ -88,6 +124,14 @@ namespace Rounds2.Combat
         private static string FormatPosition(UnityEngine.Vector3 position)
         {
             return $"({position.x:0.00},{position.y:0.00})";
+        }
+
+        private void EnsureState()
+        {
+            if (state == null)
+            {
+                state = new HealthState();
+            }
         }
     }
 }

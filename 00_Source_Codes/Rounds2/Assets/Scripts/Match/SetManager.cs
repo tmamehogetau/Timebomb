@@ -1,4 +1,5 @@
 using FishNet.Object;
+using Rounds2.Cards;
 using Rounds2.Combat;
 using Rounds2.Config;
 using Rounds2.Player;
@@ -13,13 +14,33 @@ namespace Rounds2.Match
     {
         [SerializeField] private float roundResetDelaySeconds = 1.5f;
 
-        private readonly List<Health> players = new();
-        private readonly List<bool> deadPlayers = new();
-        private readonly List<PlayerRoundEntry> playerEntries = new();
-        private readonly RoundScoreState score = new();
+        private List<Health> players = new();
+        private List<bool> deadPlayers = new();
+        private List<PlayerRoundEntry> playerEntries = new();
+        private RoundScoreState score = new();
         private Coroutine resetRoundCoroutine;
+        private string latestRewardText = string.Empty;
+        private string rewardHudText = string.Empty;
+        private int pendingDraftPlayerIndex = -1;
+        private CardDraftOffer pendingDraftOffer;
+        private float draftChoiceUnlockTimeSeconds;
+        private bool networkServerStarted;
+
+        private const float MinimumDraftDisplaySeconds = 1.5f;
 
         public Health Winner { get; private set; }
+        public int PendingDraftPlayerIndex => pendingDraftPlayerIndex;
+
+        private void Awake()
+        {
+            EnsureState();
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            networkServerStarted = true;
+        }
 
         [Server]
         public void RegisterPlayer(Health health)
@@ -30,12 +51,19 @@ namespace Rounds2.Match
         [Server]
         public void RegisterPlayer(Health health, Transform spawnPoint)
         {
+            RegisterPlayerCore(health, spawnPoint);
+        }
+
+        private void RegisterPlayerCore(Health health, Transform spawnPoint)
+        {
+            EnsureState();
             if (health == null || players.Contains(health))
             {
                 return;
             }
 
-            health.ResetHealth();
+            health.ResetHealthCore(syncObservers: false);
+            EnsureCardLoadout(health);
             players.Add(health);
             deadPlayers.Add(health.IsDead);
             playerEntries.Add(new PlayerRoundEntry(health, spawnPoint));
@@ -80,7 +108,13 @@ namespace Rounds2.Match
         [Server]
         private void OnPlayerDied(Health deadPlayer)
         {
-            if (score.IsMatchFinished || resetRoundCoroutine != null)
+            HandlePlayerDied(deadPlayer);
+        }
+
+        private void HandlePlayerDied(Health deadPlayer)
+        {
+            EnsureState();
+            if (score.IsMatchFinished || resetRoundCoroutine != null || pendingDraftPlayerIndex >= 0)
             {
                 return;
             }
@@ -96,21 +130,33 @@ namespace Rounds2.Match
                 RoundCombatGate.Close();
                 DespawnActiveBullets();
                 Winner = players[winnerIndex];
-                score.RecordRoundWin(winnerIndex, MatchTuning.RoundWinsToWinMatch);
-                Debug.Log($"Round winner: {Winner.name} ({score.GetRoundWins(winnerIndex)}/{MatchTuning.RoundWinsToWinMatch})");
-                UpdateScoreHud();
+                bool roundFinished = score.RecordSetWin(
+                    winnerIndex,
+                    MatchTuning.SetWinsToWinRound,
+                    MatchTuning.RoundWinsToWinMatch);
+                string resultLabel = roundFinished ? "Round winner" : "Set winner";
+                Debug.Log($"{resultLabel}: {Winner.name} (sets {score.GetSetWins(winnerIndex)}/{MatchTuning.SetWinsToWinRound}, rounds {score.GetRoundWins(winnerIndex)}/{MatchTuning.RoundWinsToWinMatch})");
 
                 if (score.IsMatchFinished)
                 {
+                    UpdateScoreHud();
                     Debug.Log($"Match winner: {Winner.name}");
                     return;
                 }
 
-                resetRoundCoroutine = StartCoroutine(ResetRoundAfterDelay());
+                if (roundFinished)
+                {
+                    BeginDraft(deadIndex);
+                }
+                else
+                {
+                    ScheduleRoundReset();
+                }
+
+                UpdateScoreHud();
             }
         }
 
-        [Server]
         private IEnumerator ResetRoundAfterDelay()
         {
             yield return new WaitForSeconds(roundResetDelaySeconds);
@@ -127,12 +173,15 @@ namespace Rounds2.Match
             resetRoundCoroutine = null;
             RoundCombatGate.Open();
             Debug.Log("Round reset.");
+            rewardHudText = string.Empty;
+            UpdateDraftHud();
             UpdateHealthHud();
         }
 
         [Server]
         public void ResetMatch()
         {
+            EnsureState();
             if (resetRoundCoroutine != null)
             {
                 StopCoroutine(resetRoundCoroutine);
@@ -141,10 +190,15 @@ namespace Rounds2.Match
 
             DespawnActiveBullets();
             score.ResetMatch();
+            latestRewardText = string.Empty;
+            rewardHudText = string.Empty;
+            pendingDraftPlayerIndex = -1;
+            draftChoiceUnlockTimeSeconds = 0f;
 
             for (int i = 0; i < playerEntries.Count; i++)
             {
                 deadPlayers[i] = false;
+                EnsureCardLoadout(players[i]).Clear();
                 playerEntries[i].ResetForNextRound();
             }
 
@@ -153,6 +207,135 @@ namespace Rounds2.Match
             UpdateScoreHud();
             UpdateHealthHud();
             Debug.Log("Match reset by development shortcut.");
+        }
+
+        [Server]
+        public void SubmitDraftChoice(Health player, int choiceIndex)
+        {
+            SubmitDraftChoiceCore(player, choiceIndex);
+        }
+
+        private void SubmitDraftChoiceCore(Health player, int choiceIndex)
+        {
+            EnsureState();
+            if (player == null
+                || pendingDraftPlayerIndex < 0
+                || pendingDraftPlayerIndex >= players.Count
+                || players[pendingDraftPlayerIndex] != player
+                || Time.time < draftChoiceUnlockTimeSeconds
+                || choiceIndex < 0
+                || choiceIndex >= CardDraftOffer.Count)
+            {
+                return;
+            }
+
+            int playerIndex = pendingDraftPlayerIndex;
+            CardId reward = GrantDraftReward(playerIndex, choiceIndex);
+            rewardHudText = DraftHudText.FormatReward(
+                playerIndex + 1,
+                reward,
+                EnsureCardLoadout(players[playerIndex]).Cards);
+            pendingDraftPlayerIndex = -1;
+            draftChoiceUnlockTimeSeconds = 0f;
+            UpdateDraftHud();
+            UpdateScoreHud();
+            ScheduleRoundReset();
+        }
+
+        private void ScheduleRoundReset()
+        {
+            if (!networkServerStarted)
+            {
+                return;
+            }
+
+            resetRoundCoroutine = StartCoroutine(ResetRoundAfterDelay());
+        }
+
+        private void BeginDraft(int playerIndex)
+        {
+            if (playerIndex < 0 || playerIndex >= players.Count)
+            {
+                return;
+            }
+
+            PlayerCardLoadout loadout = EnsureCardLoadout(players[playerIndex]);
+            rewardHudText = string.Empty;
+            pendingDraftPlayerIndex = playerIndex;
+            pendingDraftOffer = CardDraftOffer.Create(loadout.CardCount);
+            draftChoiceUnlockTimeSeconds = Time.time + MinimumDraftDisplaySeconds;
+            latestRewardText = $"P{playerIndex + 1} choose: {pendingDraftOffer.FormatChoices()}";
+            Debug.Log($"Card draft: {latestRewardText}.");
+            UpdateDraftHud();
+        }
+
+        private CardId GrantDraftReward(int playerIndex, int choiceIndex)
+        {
+            PlayerCardLoadout loadout = EnsureCardLoadout(players[playerIndex]);
+            CardId reward = pendingDraftOffer.GetChoice(choiceIndex);
+            loadout.Grant(reward);
+            latestRewardText = $"P{playerIndex + 1} gained {CardText.NameWithEffect(reward)}";
+            Debug.Log($"Card reward: {latestRewardText}.");
+            return reward;
+        }
+
+        private static PlayerCardLoadout EnsureCardLoadout(Health health)
+        {
+            PlayerCardLoadout loadout = health.GetComponent<PlayerCardLoadout>();
+            if (loadout == null)
+            {
+                loadout = health.gameObject.AddComponent<PlayerCardLoadout>();
+            }
+
+            return loadout;
+        }
+
+        private void EnsureState()
+        {
+            if (players == null)
+            {
+                players = new List<Health>();
+            }
+
+            if (deadPlayers == null)
+            {
+                deadPlayers = new List<bool>();
+            }
+
+            if (playerEntries == null)
+            {
+                playerEntries = new List<PlayerRoundEntry>();
+            }
+
+            if (score == null)
+            {
+                score = new RoundScoreState();
+            }
+        }
+
+        [ObserversRpc(BufferLast = true, RunLocally = true)]
+        private void SetDraftHudObserversRpc(string text)
+        {
+            DraftHud.SetDraftText(text);
+        }
+
+        private void UpdateDraftHud()
+        {
+            string text = pendingDraftPlayerIndex >= 0
+                ? DraftHudText.FormatChoiceOffer(
+                    pendingDraftPlayerIndex + 1,
+                    pendingDraftOffer,
+                    EnsureCardLoadout(players[pendingDraftPlayerIndex]).Cards)
+                : rewardHudText;
+
+            if (ShouldSyncObservers())
+            {
+                SetDraftHudObserversRpc(text);
+            }
+            else
+            {
+                DraftHud.SetDraftText(text);
+            }
         }
 
         [ObserversRpc(BufferLast = true, RunLocally = true)]
@@ -165,15 +348,21 @@ namespace Rounds2.Match
         {
             int leftWins = score.GetRoundWins(0);
             int rightWins = score.GetRoundWins(1);
+            int leftSetWins = score.GetSetWins(0);
+            int rightSetWins = score.GetSetWins(1);
             string winnerLabel = score.MatchWinnerIndex >= 0 ? $"P{score.MatchWinnerIndex + 1}" : string.Empty;
             string text = ScoreHudText.Format(
                 leftWins,
                 rightWins,
+                leftSetWins,
+                rightSetWins,
+                MatchTuning.SetWinsToWinRound,
                 MatchTuning.RoundWinsToWinMatch,
                 score.IsMatchFinished,
-                winnerLabel);
+                winnerLabel,
+                latestRewardText);
 
-            if (IsSpawned)
+            if (ShouldSyncObservers())
             {
                 SetScoreHudObserversRpc(text);
             }
@@ -203,13 +392,14 @@ namespace Rounds2.Match
                 CombatTuning.BaseHealth,
                 GetCurrentAmmo(leftWeapon),
                 GetCurrentAmmo(rightWeapon),
-                CombatTuning.MagazineSize,
+                GetMagazineSize(leftWeapon),
+                GetMagazineSize(rightWeapon),
                 leftWeapon != null && leftWeapon.IsReloading,
                 rightWeapon != null && rightWeapon.IsReloading,
                 GetShieldStatus(leftShield),
                 GetShieldStatus(rightShield));
 
-            if (IsSpawned)
+            if (ShouldSyncObservers())
             {
                 SetHealthHudObserversRpc(text);
             }
@@ -234,14 +424,28 @@ namespace Rounds2.Match
             return weapon != null ? weapon.CurrentAmmo : CombatTuning.MagazineSize;
         }
 
+        private static int GetMagazineSize(WeaponController weapon)
+        {
+            return weapon != null ? weapon.MagazineSize : CombatTuning.MagazineSize;
+        }
+
         private static string GetShieldStatus(PlayerShieldController shield)
         {
             return shield != null ? shield.StatusLabel : "Ready";
         }
 
-        [Server]
+        private bool ShouldSyncObservers()
+        {
+            return networkServerStarted && IsSpawned;
+        }
+
         private void DespawnActiveBullets()
         {
+            if (!networkServerStarted)
+            {
+                return;
+            }
+
             Bullet[] bullets = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
             foreach (Bullet bullet in bullets)
             {
@@ -289,7 +493,7 @@ namespace Rounds2.Match
 
                 weapon?.ResetAmmo();
                 shield?.ResetShield();
-                health.ResetHealth();
+                health.ResetHealthCore();
             }
         }
     }
