@@ -245,9 +245,11 @@ GAME_END → (restart) → LOBBY
 ## 8. リコネクト・エラー処理
 
 ### リコネクト（簡易・MVP）
-- 初回 `join` 成功時、サーバーは `playerId` を発行し `joined` で返却。クライアントは `playerId` を localStorage に保存
+- 初回 `join` 成功時、サーバーは **推測不能な UUID** の `playerId` を発行し `joined` で返却。クライアントは `playerId` を localStorage に保存
+  - UUID により、playerId を書き換えて他人の席を乗っ取るなりすましを防止する
 - 再接続時: クライアントは `join{ roomCode, name, playerId? }` を送信。サーバーは `roomCode` 内の `playerId`（なければ `name`）で既存席を特定
 - 席が特定できれば `connected = true` に戻し、最新 `PlayerView` を再送して**席と手札を復元**（手札実体はサーバーにあるため安全）
+- **複数タブ/同一席の2重 join**: 同じ席が既に `connected` の状態で別接続が来たら、**新しい接続で古い接続を置き換える**（重複排除）。席が2つに増えないようにする
 - 手札の実体はサーバーにあるため、復元時に秘匿情報は安全
 - **ホスト切断時**: 残存プレイヤーの最古参加者へホスト委譲
 
