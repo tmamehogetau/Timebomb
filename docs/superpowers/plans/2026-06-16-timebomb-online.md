@@ -85,6 +85,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
@@ -247,8 +248,9 @@ pre-commit:
 - [ ] **Step 7: インストールと検証**
 
 Run: `npm install`
-Run: `npm run typecheck`
-Expected: エラーなし（ソースが無いので何もコンパイルされないだけで成功する）
+Expected: `package-lock.json` が生成され、依存関係のインストールが成功する
+
+Note: この時点では `src/` が未作成のため、`npm run typecheck` は Task 2 の `src/shared/types.ts` 作成後に実行する。
 
 - [ ] **Step 8: コミット**
 
@@ -294,6 +296,11 @@ export interface CutEvent {
   revealedType: CardType;
 }
 
+export interface RevealedRole {
+  playerId: string;
+  role: Role;
+}
+
 export interface GameState {
   phase: Phase;
   round: number;
@@ -318,6 +325,7 @@ export interface PlayerViewPublicPlayer {
 export interface PlayerView {
   phase: Phase;
   round: number;
+  spyEnabled: boolean;
   myPlayerId: string;
   myRole: Role | null;
   myHand: CardType[];
@@ -329,6 +337,7 @@ export interface PlayerView {
   players: PlayerViewPublicPlayer[];
   lastCut: CutEvent | null;
   winners: Role[] | null;
+  revealedRoles: RevealedRole[] | null;
 }
 
 // ---- Client -> Server ----
@@ -414,6 +423,11 @@ describe("config", () => {
     expect(roleDistributionFor(5, true)).toEqual({ bomber: 1, police: 3, spy: 1 });
     expect(roleDistributionFor(6, true)).toEqual({ bomber: 2, police: 3, spy: 1 });
   });
+
+  it("未対応人数は明示的に失敗する", () => {
+    expect(() => roleDistributionFor(3, false)).toThrow("Unsupported player count");
+    expect(() => roleDistributionFor(7, true)).toThrow("Unsupported player count");
+  });
 });
 ```
 
@@ -454,7 +468,8 @@ export function roleDistributionFor(
     5: { base: { bomber: 1, police: 4, spy: 0 }, spy: { bomber: 1, police: 3, spy: 1 } },
     6: { base: { bomber: 2, police: 4, spy: 0 }, spy: { bomber: 2, police: 3, spy: 1 } },
   };
-  const entry = table[playerCount] ?? table[4];
+  const entry = table[playerCount];
+  if (!entry) throw new Error(`Unsupported player count: ${playerCount}`);
   return spyEnabled ? entry.spy : entry.base;
 }
 
@@ -760,6 +775,13 @@ describe("applyCut", () => {
     expect(r.kind).toBe("invalid");
   });
 
+  it("小数 index は拒否", () => {
+    const s = setup4();
+    const target = s.players.find((p) => p.id !== s.currentCutterId)!;
+    const r = applyCut(s, s.currentCutterId!, { targetId: target.id, cardIndex: 0.5 });
+    expect(r.kind).toBe("invalid");
+  });
+
   it("silence は継続・ターン継承（切られた人が次）", () => {
     const s = setup4();
     const cutter = s.currentCutterId!;
@@ -921,7 +943,7 @@ export function applyCut(
   if (input.targetId === cutterId) return { kind: "invalid", reason: "自分は切れません" };
   const target = state.players.find((p) => p.id === input.targetId);
   if (!target) return { kind: "invalid", reason: "対象が存在しません" };
-  if (input.cardIndex < 0 || input.cardIndex >= target.hand.length)
+  if (!Number.isInteger(input.cardIndex) || input.cardIndex < 0 || input.cardIndex >= target.hand.length)
     return { kind: "invalid", reason: "カード位置が不正です" };
 
   const [revealed] = target.hand.splice(input.cardIndex, 1);
@@ -1055,8 +1077,12 @@ describe("toPlayerView 秘匿フィルタ", () => {
         expect((o as unknown as Record<string, unknown>).hand).toBeUndefined();
         expect((o as unknown as Record<string, unknown>).role).toBeUndefined();
       }
-      // view 直下にも他人手札の漏洩がない
-      expect(JSON.stringify(view)).not.toContain('"hand"');
+      // public players には他人の手札配列やカード種別が漏れない
+      const publicPlayersJson = JSON.stringify(view.players);
+      expect(publicPlayersJson).not.toContain('"hand"');
+      expect(publicPlayersJson).not.toContain("defuse");
+      expect(publicPlayersJson).not.toContain("bomb");
+      expect(publicPlayersJson).not.toContain("silence");
     }
   });
 
@@ -1069,6 +1095,7 @@ describe("toPlayerView 秘匿フィルタ", () => {
     expect(view.myRole).toBe(s.players[0].role);
     // players 配列に role キーが無いことを再確認
     expect(view.players.every((p) => !("role" in p))).toBe(true);
+    expect(view.revealedRoles).toBeNull();
   });
 
   it("チップ/カット情報は全員に同一", () => {
@@ -1081,6 +1108,23 @@ describe("toPlayerView 秘匿フィルタ", () => {
     expect(v0.defuseChipsFlipped).toBe(v1.defuseChipsFlipped);
     expect(v0.defuseChipsTotal).toBe(4);
     expect(v0.cutsPerRound).toBe(4);
+  });
+
+  it("spyEnabled は公開情報として見え、revealedRoles は game_end のみ全員に見える", () => {
+    const s = createInitialState();
+    s.players = makePlayers(4);
+    s.spyEnabled = true;
+    startGame(s, identityShuffle);
+    const beforeEnd = toPlayerView(s, "p0");
+    expect(beforeEnd.spyEnabled).toBe(true);
+    expect(beforeEnd.revealedRoles).toBeNull();
+
+    s.phase = "game_end";
+    s.winners = ["bomber"];
+    const afterEnd = toPlayerView(s, "p0");
+    expect(afterEnd.revealedRoles).toEqual(
+      s.players.map((p) => ({ playerId: p.id, role: p.role }))
+    );
   });
 });
 ```
@@ -1109,6 +1153,7 @@ export function toPlayerView(state: GameState, viewerId: string): PlayerView {
   return {
     phase: state.phase,
     round: state.round,
+    spyEnabled: state.spyEnabled,
     myPlayerId: viewerId,
     myRole: me ? me.role : null,
     myHand: me ? [...me.hand] : [],
@@ -1120,6 +1165,10 @@ export function toPlayerView(state: GameState, viewerId: string): PlayerView {
     players,
     lastCut: state.lastCut,
     winners: state.winners,
+    revealedRoles:
+      state.phase === "game_end"
+        ? state.players.map((p) => ({ playerId: p.id, role: p.role! }))
+        : null,
   };
 }
 ```
@@ -1233,6 +1282,24 @@ describe("Room", () => {
     expect(r.state.players[1].connected).toBe(true);
   });
 
+  it("満員でも既存 playerId のリコネクトは許可", () => {
+    const r = new Room("ABCD", identityShuffle);
+    const ids = fillRoom(r, 6);
+    r.handleDisconnect(ids[5]);
+    const res = r.handleJoin({ type: "join", name: "P5", roomCode: "ABCD", playerId: ids[5] });
+    expect(res.type).toBe("joined");
+    expect(r.state.players.length).toBe(6);
+    expect(r.state.players[5].connected).toBe(true);
+  });
+
+  it("リコネクト時も他人の名前には変更できない", () => {
+    const r = new Room("ABCD", identityShuffle);
+    const ids = fillRoom(r, 4);
+    r.handleDisconnect(ids[1]);
+    const res = r.handleJoin({ type: "join", name: "P0", roomCode: "ABCD", playerId: ids[1] });
+    expect(res.type).toBe("error");
+  });
+
   it("snapshot(view) は他人の手札オモテを含まない", () => {
     const r = new Room("ABCD", identityShuffle);
     const ids = fillRoom(r, 4);
@@ -1240,12 +1307,12 @@ describe("Room", () => {
     ids.forEach((id) => r.handleCommand(id, { type: "ready" }));
     for (const id of ids) {
       const snap = r.snapshotFor(id);
-      const json = JSON.stringify(snap);
       // 他人の手札型文字列が直接 view に現れない（myHand は自分のみ）
       expect(snap.myPlayerId).toBe(id);
       expect(snap.players.every((p) => !("hand" in p))).toBe(true);
       expect(snap.players.every((p) => !("role" in p))).toBe(true);
-      expect(json).not.toContain('"hand"');
+      expect(snap.revealedRoles).toBeNull();
+      expect(JSON.stringify(snap.players)).not.toContain('"hand"');
     }
   });
 });
@@ -1292,17 +1359,20 @@ export class Room {
   }
 
   handleJoin(msg: Extract<ClientMessage, { type: "join" }>): ServerMessage {
-    if (this.state.players.length >= MAX_PLAYERS) {
-      return { type: "error", message: "ルームが満員です" };
-    }
     // リコネクト: 同 playerId の既存席があれば復元
     if (msg.playerId) {
       const existing = this.state.players.find((p) => p.id === msg.playerId);
       if (existing) {
+        if (this.state.players.some((p) => p.id !== existing.id && p.name === msg.name)) {
+          return { type: "error", message: "その名前は既に使われています" };
+        }
         existing.connected = true;
         existing.name = msg.name;
         return { type: "joined", playerId: existing.id, roomCode: this.code, isHost: existing.isHost };
       }
+    }
+    if (this.state.players.length >= MAX_PLAYERS) {
+      return { type: "error", message: "ルームが満員です" };
     }
     if (this.state.players.some((p) => p.name === msg.name)) {
       return { type: "error", message: "その名前は既に使われています" };
@@ -1493,8 +1563,9 @@ export function attachWebSocketServer(
 
       // join はセッション未確定でも受付
       if (msg.type === "join") {
-        const room = getOrCreateRoom(rooms, msg.roomCode, shuffle);
-        const result = room.handleJoin(msg);
+        const roomCode = msg.roomCode.trim().toUpperCase();
+        const room = getOrCreateRoom(rooms, roomCode, shuffle);
+        const result = room.handleJoin({ ...msg, roomCode });
         send(socket, result);
         if (result.type === "joined") {
           // 同 playerId の古い接続があれば置き換え
@@ -1544,9 +1615,10 @@ function getOrCreateRoom(
   code: string,
   shuffle: ReturnType<typeof createSystemShuffle>
 ): Room {
-  let room = rooms.get(code);
+  const normalizedCode = code.trim().toUpperCase();
+  let room = rooms.get(normalizedCode);
   if (!room) {
-    room = new Room(code.toUpperCase(), shuffle);
+    room = new Room(normalizedCode, shuffle);
     rooms.set(room.code, room);
   }
   return room;
@@ -1649,7 +1721,7 @@ function parseMessage(
     case "ready":
       return { message: { type: "ready" } };
     case "cut":
-      if (typeof r.targetId === "string" && typeof r.cardIndex === "number")
+      if (typeof r.targetId === "string" && typeof r.cardIndex === "number" && Number.isInteger(r.cardIndex))
         return { message: { type: "cut", targetId: r.targetId, cardIndex: r.cardIndex } };
       return { error: "cut のパラメータが不正です" };
     case "restart":
@@ -1751,25 +1823,41 @@ class FakeSocket {
 }
 
 describe("useSocket", () => {
-  beforeEach(() => { FakeSocket.last = null; (globalThis as unknown as { WebSocket: typeof WebSocket }).WebSocket = FakeSocket as unknown as typeof WebSocket; });
+  beforeEach(() => {
+    FakeSocket.last = null;
+    window.localStorage.clear();
+    (globalThis as unknown as { WebSocket: typeof WebSocket }).WebSocket = FakeSocket as unknown as typeof WebSocket;
+  });
   afterEach(() => { vi.useRealTimers(); });
 
   it("接続後にメッセージを受信して state を更新", async () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => useSocket());
-    await act(async () => { vi.runAllTimersAsync(); });
+    await act(async () => { await vi.runAllTimersAsync(); });
     act(() => {
       FakeSocket.last!.onmessage?.({ data: JSON.stringify({ type: "joined", playerId: "x", roomCode: "ABCD", isHost: true }) });
     });
     expect(result.current.playerId).toBe("x");
+    expect(window.localStorage.getItem("timebomb:ABCD:playerId")).toBe("x");
   });
 
   it("send で JSON を送信", async () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => useSocket());
-    await act(async () => { vi.runAllTimersAsync(); });
+    await act(async () => { await vi.runAllTimersAsync(); });
     act(() => { result.current.send({ type: "ready" }); });
     expect(FakeSocket.last!.sent).toContain(JSON.stringify({ type: "ready" }));
+  });
+
+  it("join は roomCode を正規化し、保存済み playerId があれば同送する", async () => {
+    vi.useFakeTimers();
+    window.localStorage.setItem("timebomb:ABCD:playerId", "saved-player");
+    const { result } = renderHook(() => useSocket());
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => { result.current.join("Alice", "abcd"); });
+    expect(FakeSocket.last!.sent).toContain(
+      JSON.stringify({ type: "join", name: "Alice", roomCode: "ABCD", playerId: "saved-player" })
+    );
   });
 });
 ```
@@ -1791,6 +1879,7 @@ interface SocketState {
   roomCode: string | null;
   isHost: boolean;
   error: string | null;
+  join: (name: string, roomCode: string) => void;
   send: (msg: ClientMessage) => void;
 }
 
@@ -1813,6 +1902,8 @@ export function useSocket(): SocketState {
           setPlayerId(msg.playerId);
           setRoomCode(msg.roomCode);
           setIsHost(msg.isHost);
+          window.localStorage.setItem(`timebomb:${msg.roomCode}:playerId`, msg.playerId);
+          window.localStorage.setItem("timebomb:lastRoomCode", msg.roomCode);
           break;
         case "state":
           setView(msg.view);
@@ -1830,7 +1921,16 @@ export function useSocket(): SocketState {
     wsRef.current?.send(JSON.stringify(msg));
   }, []);
 
-  return { view, playerId, roomCode, isHost, error, send };
+  const join = useCallback((name: string, roomCode: string) => {
+    const normalizedRoomCode = roomCode.trim().toUpperCase();
+    const trimmedName = name.trim();
+    if (!trimmedName || !normalizedRoomCode) return;
+    const savedPlayerId =
+      window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerId`) ?? undefined;
+    send({ type: "join", name: trimmedName, roomCode: normalizedRoomCode, playerId: savedPlayerId });
+  }, [send]);
+
+  return { view, playerId, roomCode, isHost, error, join, send };
 }
 ```
 
@@ -1868,6 +1968,7 @@ describe("Lobby", () => {
     render(
       <Lobby
         myId="p0"
+        joined={true}
         isHost={true}
         spyEnabled={false}
         players={[
@@ -1877,6 +1978,7 @@ describe("Lobby", () => {
         ]}
         roomCode="ABCD"
         canStart={false}
+        onJoin={() => {}}
         send={send}
       />
     );
@@ -1889,10 +1991,22 @@ describe("Lobby", () => {
     const send = vi.fn();
     const user = userEvent.setup();
     render(
-      <Lobby myId="p0" isHost={true} spyEnabled={false} players={[]} roomCode="X" canStart={true} send={send} />
+      <Lobby myId="p0" joined={true} isHost={true} spyEnabled={false} players={[]} roomCode="X" canStart={true} onJoin={() => {}} send={send} />
     );
     await user.click(screen.getByRole("switch", { name: /スパイ/ }));
     expect(send).toHaveBeenCalledWith({ type: "setSpy", enabled: true });
+  });
+
+  it("未参加なら名前とルームコードで join できる", async () => {
+    const onJoin = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Lobby myId="" joined={false} isHost={false} spyEnabled={false} players={[]} roomCode="----" canStart={false} onJoin={onJoin} send={() => {}} />
+    );
+    await user.type(screen.getByLabelText("名前"), "Alice");
+    await user.type(screen.getByLabelText("ルームコード"), "abcd");
+    await user.click(screen.getByRole("button", { name: /参加/ }));
+    expect(onJoin).toHaveBeenCalledWith("Alice", "abcd");
   });
 });
 ```
@@ -1905,19 +2019,50 @@ Expected: FAIL
 - [ ] **Step 3: 実装 `src/client/components/Lobby.tsx`**
 
 ```tsx
+import { useState } from "react";
 import type { ClientMessage, PlayerViewPublicPlayer } from "../../shared/types";
 
 interface Props {
   myId: string;
+  joined: boolean;
   isHost: boolean;
   spyEnabled: boolean;
   players: PlayerViewPublicPlayer[];
   roomCode: string;
   canStart: boolean;
+  onJoin: (name: string, roomCode: string) => void;
   send: (msg: ClientMessage) => void;
 }
 
-export function Lobby({ myId, isHost, spyEnabled, players, roomCode, canStart, send }: Props) {
+export function Lobby({ myId, joined, isHost, spyEnabled, players, roomCode, canStart, onJoin, send }: Props) {
+  const [name, setName] = useState("");
+  const [joinRoomCode, setJoinRoomCode] = useState("");
+
+  if (!joined) {
+    return (
+      <section className="lobby">
+        <h1>タイムボム Online</h1>
+        <form
+          className="join-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onJoin(name, joinRoomCode);
+          }}
+        >
+          <label>
+            名前
+            <input aria-label="名前" value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label>
+            ルームコード
+            <input aria-label="ルームコード" value={joinRoomCode} onChange={(e) => setJoinRoomCode(e.target.value)} />
+          </label>
+          <button disabled={!name.trim() || !joinRoomCode.trim()}>参加</button>
+        </form>
+      </section>
+    );
+  }
+
   return (
     <section className="lobby">
       <h1>タイムボム Online</h1>
@@ -2066,6 +2211,7 @@ import type { PlayerView } from "../../src/shared/types";
 const baseView: PlayerView = {
   phase: "round_play",
   round: 1,
+  spyEnabled: false,
   myPlayerId: "p0",
   myRole: "police",
   myHand: ["defuse", "silence"],
@@ -2080,6 +2226,7 @@ const baseView: PlayerView = {
   ],
   lastCut: null,
   winners: null,
+  revealedRoles: null,
 };
 
 describe("GameTable", () => {
@@ -2241,11 +2388,24 @@ import { describe, expect, it, vi } from "vitest";
 import { GameOver } from "../../src/client/components/GameOver";
 
 describe("GameOver", () => {
-  it("勝者陣営を表示し、ホストがリマーク可", async () => {
+  it("勝者陣営と公開役職を表示し、ホストがリマッチ可", async () => {
     const send = vi.fn();
     const user = userEvent.setup();
-    render(<GameOver winners={["bomber"]} isHost={true} send={send} />);
+    render(
+      <GameOver
+        winners={["bomber"]}
+        revealedRoles={[{ playerId: "p0", role: "bomber" }, { playerId: "p1", role: "police" }]}
+        players={[
+          { id: "p0", name: "A", handSize: 0, connected: true, ready: true, isHost: true },
+          { id: "p1", name: "B", handSize: 0, connected: true, ready: true, isHost: false },
+        ]}
+        isHost={true}
+        send={send}
+      />
+    );
     expect(screen.getByText(/ボマー/)).toBeInTheDocument();
+    expect(screen.getByText(/A: ボマー/)).toBeInTheDocument();
+    expect(screen.getByText(/B: 時空警察/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /もう一度/ }));
     expect(send).toHaveBeenCalledWith({ type: "restart" });
   });
@@ -2256,7 +2416,7 @@ describe("GameOver", () => {
 
 `src/client/components/GameOver.tsx`:
 ```tsx
-import type { ClientMessage, Role } from "../../shared/types";
+import type { ClientMessage, PlayerViewPublicPlayer, RevealedRole, Role } from "../../shared/types";
 
 const WINNER_LABEL: Record<Role, string> = {
   police: "時空警察",
@@ -2266,14 +2426,22 @@ const WINNER_LABEL: Record<Role, string> = {
 
 interface Props {
   winners: Role[];
+  revealedRoles: RevealedRole[];
+  players: PlayerViewPublicPlayer[];
   isHost: boolean;
   send: (msg: ClientMessage) => void;
 }
 
-export function GameOver({ winners, isHost, send }: Props) {
+export function GameOver({ winners, revealedRoles, players, isHost, send }: Props) {
+  const nameById = new Map(players.map((p) => [p.id, p.name]));
   return (
     <section className="game-over">
       <h2>勝者: {winners.map((w) => WINNER_LABEL[w]).join(" / ")}</h2>
+      <ul>
+        {revealedRoles.map((r) => (
+          <li key={r.playerId}>{nameById.get(r.playerId) ?? r.playerId}: {WINNER_LABEL[r.role]}</li>
+        ))}
+      </ul>
       {isHost && <button onClick={() => send({ type: "restart" })}>もう一度</button>}
     </section>
   );
@@ -2288,7 +2456,93 @@ git add src/client/components/GameOver.tsx tests/client/GameOver.test.tsx
 git commit -m "feat(client): GameOver component with tests"
 ```
 
-- [ ] **Step 4: `App.tsx` 配線**
+- [ ] **Step 4: App 配線の失敗テスト**
+
+`tests/client/App.test.tsx`:
+```tsx
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { App } from "../../src/client/App";
+import type { PlayerView } from "../../src/shared/types";
+
+const socketState = vi.hoisted(() => ({
+  current: {
+    view: null as PlayerView | null,
+    playerId: null as string | null,
+    roomCode: null as string | null,
+    isHost: false,
+    error: null as string | null,
+    join: vi.fn(),
+    send: vi.fn(),
+  },
+}));
+
+vi.mock("../../src/client/useSocket", () => ({
+  useSocket: () => socketState.current,
+}));
+
+function lobbyView(myPlayerId: string, isHost: boolean): PlayerView {
+  return {
+    phase: "lobby",
+    round: 0,
+    spyEnabled: false,
+    myPlayerId,
+    myRole: null,
+    myHand: [],
+    currentCutterId: null,
+    defuseChipsFlipped: 0,
+    defuseChipsTotal: 4,
+    cutsThisRound: 0,
+    cutsPerRound: 4,
+    players: Array.from({ length: 4 }, (_, i) => ({
+      id: `p${i}`,
+      name: `P${i}`,
+      handSize: 0,
+      connected: true,
+      ready: false,
+      isHost: isHost && i === 1,
+    })),
+    lastCut: null,
+    winners: null,
+    revealedRoles: null,
+  };
+}
+
+describe("App", () => {
+  beforeEach(() => {
+    socketState.current.view = null;
+    socketState.current.playerId = null;
+    socketState.current.roomCode = null;
+    socketState.current.isHost = false;
+    socketState.current.join.mockClear();
+    socketState.current.send.mockClear();
+  });
+
+  it("未参加なら join フォームから useSocket.join を呼ぶ", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.type(screen.getByLabelText("名前"), "Alice");
+    await user.type(screen.getByLabelText("ルームコード"), "abcd");
+    await user.click(screen.getByRole("button", { name: /参加/ }));
+    expect(socketState.current.join).toHaveBeenCalledWith("Alice", "abcd");
+  });
+
+  it("ホスト状態は joined 応答ではなく最新 view.players から導出する", () => {
+    socketState.current.playerId = "p1";
+    socketState.current.roomCode = "ABCD";
+    socketState.current.isHost = false;
+    socketState.current.view = lobbyView("p1", true);
+    render(<App />);
+    expect(screen.getByRole("button", { name: /開始/ })).toBeEnabled();
+  });
+});
+```
+
+Run: `npx vitest run tests/client/App.test.tsx`
+Expected: FAIL（App 未実装）
+
+- [ ] **Step 5: `App.tsx` 配線**
 
 `src/client/App.tsx`:
 ```tsx
@@ -2301,16 +2555,20 @@ import { useSocket } from "./useSocket";
 export function App() {
   const sock = useSocket();
   const v = sock.view;
+  const me = v?.players.find((p) => p.id === v.myPlayerId);
+  const isHost = me?.isHost ?? sock.isHost;
 
   if (!sock.playerId || !v || v.phase === "lobby") {
     return (
       <Lobby
         myId={sock.playerId ?? ""}
-        isHost={sock.isHost}
-        spyEnabled={v?.players ? (v as never) : false}
+        joined={Boolean(sock.playerId)}
+        isHost={isHost}
+        spyEnabled={v?.spyEnabled ?? false}
         players={v?.players ?? []}
         roomCode={sock.roomCode ?? "----"}
         canStart={(v?.players.length ?? 0) >= 4 && (v?.players.length ?? 0) <= 6}
+        onJoin={sock.join}
         send={sock.send}
       />
     );
@@ -2321,23 +2579,20 @@ export function App() {
   }
 
   if (v.phase === "game_end") {
-    return <GameOver winners={v.winners ?? []} isHost={sock.isHost} send={sock.send} />;
+    return <GameOver winners={v.winners ?? []} revealedRoles={v.revealedRoles ?? []} players={v.players} isHost={isHost} send={sock.send} />;
   }
 
   return <GameTable view={v} send={sock.send} />;
 }
 ```
 
-> 注: `spyEnabled` を `PlayerView` に持たせるのがクリーン。次ステップで `types.ts` の `PlayerView` に `spyEnabled: boolean` を追加し、`engine.ts` の `toPlayerView` で `spyEnabled: state.spyEnabled` をセットすること。App では `spyEnabled={v.spyEnabled}` を渡す。
+- [ ] **Step 6: 追加フィールドとホスト導出を確認**
 
-- [ ] **Step 5: `PlayerView.spyEnabled` 追加**
+`PlayerView.spyEnabled` と `PlayerView.revealedRoles` は Task 2/7 で追加済み。
+`tests/client/*` の `baseView` 等に `spyEnabled: false` と `revealedRoles: null` を補完。
+`App.tsx` は `v.players` から自分の `isHost` を導出し、ホスト委譲後も表示が追従すること。
 
-`src/shared/types.ts` の `PlayerView` に `spyEnabled: boolean;` を追加。
-`src/shared/engine.ts` の `toPlayerView` 戻り値に `spyEnabled: state.spyEnabled,` を追加。
-`tests/client/*` の `baseView` 等に `spyEnabled: false` を補完。
-`App.tsx` の `spyEnabled` を `spyEnabled={v.spyEnabled}` に修正。
-
-- [ ] **Step 6: `main.tsx` と `styles.css`**
+- [ ] **Step 7: `main.tsx` と `styles.css`**
 
 `src/client/main.tsx`:
 ```tsx
@@ -2359,6 +2614,9 @@ createRoot(document.getElementById("root")!).render(
 * { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, sans-serif; background: #15152a; color: #eee; }
 .lobby, .role-reveal, .game-over { max-width: 640px; margin: 2rem auto; padding: 1rem; }
+.join-form { display: grid; gap: .75rem; }
+.join-form label { display: grid; gap: .25rem; }
+.join-form input { padding: .5rem; border-radius: 6px; border: 1px solid #555580; background: #22223a; color: #eee; }
 .hud { display: flex; gap: 1rem; justify-content: center; padding: .5rem; background: #2a2a4a; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .75rem; padding: 1rem; }
 .panel { background: #22223a; border-radius: 8px; padding: .5rem; border: 2px solid transparent; }
@@ -2375,13 +2633,13 @@ button.card-back { cursor: pointer; }
 .hint { color: #9a9ac0; font-size: 12px; }
 ```
 
-- [ ] **Step 7: 型検証と全テスト**
+- [ ] **Step 8: 型検証と全テスト**
 
 Run: `npm run typecheck`
 Run: `npm test`
 Expected: 両方成功
 
-- [ ] **Step 8: コミット**
+- [ ] **Step 9: コミット**
 
 ```bash
 git add src/client/App.tsx src/client/main.tsx src/client/styles.css src/shared/types.ts src/shared/engine.ts tests/client
@@ -2451,6 +2709,6 @@ git commit -m "chore: add render deployment config"
 
 ## 自己レビューメモ（執筆後チェック）
 
-- **Spec coverage**: ルール（Task 3,5,6,7）/ サーバー権威＋フィルタ（Task 7,8）/ グリッドUI（Task 15）/ リコネクト＋重複排除（Task 8,10）/ 3陣営勝敗（Task 6）/ Render（Task 17）→ 全覆盖。
-- **Type 一貫性**: `applyCut`/`advanceRound`/`toPlayerView`/`Room.handleCommand` のシグネチャは Task 間で一致。`PlayerView.spyEnabled` を Task 16 Step 5 で追加（App が参照するため）。
-- **未解決（実装時メモ）**: 6人時ボマー2枚は `config.ts` テーブル固定（プレイ後に調整）。E2E(playwright) は本計画では手動煙テスト（Task 17 Step 3）で代替、自動化は後続バックログ。
+- **Spec coverage**: ルール（Task 3,5,6,7）/ サーバー権威＋フィルタ（Task 7,8）/ join導線（Task 12,13,16）/ グリッドUI（Task 15）/ リコネクト＋重複排除（Task 8,10,12）/ 3陣営勝敗（Task 6）/ 終了時全役職公開（Task 7,16）/ Render（Task 17）→ v1 成功基準を網羅。
+- **Type 一貫性**: `PlayerView.spyEnabled` と `PlayerView.revealedRoles` は Task 2 で定義し、Task 7 の `toPlayerView`、Task 15/16 のクライアントテスト、Task 16 の `App`/`GameOver` で一貫して参照する。
+- **実装時メモ**: 6人時ボマー2枚は `config.ts` テーブル固定（プレイ後に調整）。E2E(playwright) は本計画では手動煙テスト（Task 17 Step 3）で代替、自動化は後続バックログ。

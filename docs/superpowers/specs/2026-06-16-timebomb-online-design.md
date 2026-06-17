@@ -160,6 +160,7 @@ interface GameState {
 interface PlayerView {
   phase: Phase;
   round: number;
+  spyEnabled: boolean;                 // ロビー表示用。秘匿情報ではない
   myPlayerId: string;
   myRole: Role | null;
   myHand: CardType[];                 // 自分の手札オモテ（自分のみ）
@@ -178,10 +179,11 @@ interface PlayerView {
   }[];
   lastCut: CutEvent | null;           // 公開イベント（カード型含む）
   winners: Role[] | null;
+  revealedRoles: { playerId: string; role: Role }[] | null; // game_end のみ全員に公開
 }
 ```
 
-> **不変条件**: `PlayerView.myHand` には自分の手札のみ。他人の手札は `handSize` のみ送信。これを `room.test.ts` で表明的アサートする。
+> **不変条件**: `PlayerView.myHand` には自分の手札のみ。他人の手札は `handSize` のみ送信。役職は通常時 `myRole` のみで、`revealedRoles` は `game_end` の全役職公開時だけ非 null。これを `room.test.ts` で表明的アサートする。
 
 ---
 
@@ -247,7 +249,7 @@ GAME_END → (restart) → LOBBY
 ### リコネクト（簡易・MVP）
 - 初回 `join` 成功時、サーバーは **推測不能な UUID** の `playerId` を発行し `joined` で返却。クライアントは `playerId` を localStorage に保存
   - UUID により、playerId を書き換えて他人の席を乗っ取るなりすましを防止する
-- 再接続時: クライアントは `join{ roomCode, name, playerId? }` を送信。サーバーは `roomCode` 内の `playerId`（なければ `name`）で既存席を特定
+- 再接続時: クライアントは `join{ roomCode, name, playerId? }` を送信。サーバーは `roomCode` 内の `playerId` で既存席を特定する。`playerId` が無い場合は新規参加扱いとし、同名が既に存在する場合は拒否する
 - 席が特定できれば `connected = true` に戻し、最新 `PlayerView` を再送して**席と手札を復元**（手札実体はサーバーにあるため安全）
 - **複数タブ/同一席の2重 join**: 同じ席が既に `connected` の状態で別接続が来たら、**新しい接続で古い接続を置き換える**（重複排除）。席が2つに増えないようにする
 - 手札の実体はサーバーにあるため、復元時に秘匿情報は安全
@@ -266,7 +268,7 @@ GAME_END → (restart) → LOBBY
 採用レイアウト: **グリッド・パネル（案C）** — 全プレイヤー（自分含む）を等サイズパネルで配置。自分のパネルのみ緑枠＋カードオモテ表示、他は裏向き。手番者は黄枠ハイライト。中央HUDに解除チップ / ラウンド / 手番 / 直前の結果。
 
 ### 主な画面
-1. **ロビー**: ルームコード表示・参加者リスト・スパイトグル・開始ボタン
+1. **ロビー**: 名前/ルームコード入力・参加ボタン・ルームコード表示・参加者リスト・スパイトグル・開始ボタン
 2. **役職公開（個人オーバーレイ）**: 自分の役職と「確認」ボタン
 3. **ゲームテーブル（グリッド）**: 全プレイヤーパネル ＋ 中央HUD
    - 自分のパネル: 手札オモテ（解除=緑/ボム=赤/しーん=灰）
