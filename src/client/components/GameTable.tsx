@@ -22,8 +22,8 @@ export function GameTable({ view, send }: Props) {
           {isMyTurn ? "あなたの手番" : "他プレイヤーの手番"}
         </span>
       </div>
-      {view.lastCut ? <CutResultBanner type={view.lastCut.revealedType} /> : <div className="last-cut idle" />}
-      <div className="grid">
+      {view.lastCut ? <CutResultBanner type={view.lastCut.revealedType} /> : null}
+      <div className="grid player-grid-expanded" data-testid="player-grid">
         {view.players.map((p) => (
           <PlayerPanel
             key={p.id}

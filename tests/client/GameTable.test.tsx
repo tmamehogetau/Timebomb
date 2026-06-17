@@ -47,6 +47,11 @@ describe("GameTable", () => {
     expect(screen.queryByRole("button", { name: /カード/ })).toBeNull();
   });
 
+  it("プレイヤーエリアはカード表示を広く取るグリッドで表示する", () => {
+    render(<GameTable view={baseView} send={() => {}} />);
+    expect(screen.getByTestId("player-grid")).toHaveClass("player-grid-expanded");
+  });
+
   it("直前のカット結果を演出バナーとして表示する", () => {
     const withCut: PlayerView = {
       ...baseView,
