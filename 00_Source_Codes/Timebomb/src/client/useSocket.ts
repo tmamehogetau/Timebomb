@@ -1,0 +1,76 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ClientMessage, PlayerView, ServerMessage } from "../shared/types";
+
+interface SocketState {
+  view: PlayerView | null;
+  playerId: string | null;
+  roomCode: string | null;
+  isHost: boolean;
+  error: string | null;
+  join: (name: string, roomCode: string) => void;
+  send: (msg: ClientMessage) => void;
+}
+
+export function useSocket(): SocketState {
+  const wsRef = useRef<WebSocket | null>(null);
+  const [view, setView] = useState<PlayerView | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data as string) as ServerMessage;
+      switch (msg.type) {
+        case "joined":
+          setPlayerId(msg.playerId);
+          setRoomCode(msg.roomCode);
+          setIsHost(msg.isHost);
+          window.localStorage.setItem(`timebomb:${msg.roomCode}:playerId`, msg.playerId);
+          window.localStorage.setItem("timebomb:lastRoomCode", msg.roomCode);
+          setError(null);
+          break;
+        case "state":
+          setView(msg.view);
+          setPlayerId(msg.view.myPlayerId);
+          break;
+        case "error":
+          setError(msg.message);
+          break;
+      }
+    };
+    ws.onclose = () => {
+      if (wsRef.current === ws) wsRef.current = null;
+    };
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  const send = useCallback((msg: ClientMessage) => {
+    wsRef.current?.send(JSON.stringify(msg));
+  }, []);
+
+  const join = useCallback(
+    (name: string, roomCodeInput: string) => {
+      const normalizedRoomCode = roomCodeInput.trim().toUpperCase();
+      const trimmedName = name.trim();
+      if (!trimmedName || !normalizedRoomCode) return;
+      const savedPlayerId =
+        window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerId`) ?? undefined;
+      send({
+        type: "join",
+        name: trimmedName,
+        roomCode: normalizedRoomCode,
+        playerId: savedPlayerId
+      });
+    },
+    [send]
+  );
+
+  return { view, playerId, roomCode, isHost, error, join, send };
+}

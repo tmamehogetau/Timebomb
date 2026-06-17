@@ -1,0 +1,136 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #15152a;
+  color: #eee;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.lobby,
+.role-reveal,
+.game-over {
+  max-width: 640px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+.join-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.join-form label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.join-form input {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #555580;
+  background: #22223a;
+  color: #eee;
+}
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  padding: 0.5rem;
+  background: #2a2a4a;
+}
+
+.last-cut {
+  min-height: 2rem;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.panel {
+  background: #22223a;
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 2px solid transparent;
+}
+
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.panel-me {
+  border-color: #7ee08a;
+}
+
+.panel-current {
+  border-color: #ffd166;
+}
+
+.panel-disconnected {
+  opacity: 0.5;
+}
+
+.hand {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.card {
+  display: inline-block;
+  width: 42px;
+  height: 52px;
+  border-radius: 5px;
+  line-height: 52px;
+  text-align: center;
+  font-size: 11px;
+  color: #fff;
+}
+
+.card-defuse {
+  background: #2e7d4f;
+}
+
+.card-bomb {
+  background: #b23b3b;
+}
+
+.card-silence {
+  background: #6b6b80;
+}
+
+.card-back {
+  background: #3a3a5e;
+  border: 1px solid #555580;
+}
+
+button.card-back {
+  cursor: pointer;
+}
+
+.hint {
+  color: #9a9ac0;
+  font-size: 12px;
+}

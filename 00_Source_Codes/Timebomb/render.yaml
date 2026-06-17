@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: timebomb-online
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run render-build
+    startCommand: npm run start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
