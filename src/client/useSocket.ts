@@ -13,6 +13,7 @@ interface SocketState {
 
 export function useSocket(): SocketState {
   const wsRef = useRef<WebSocket | null>(null);
+  const roomCodeRef = useRef<string | null>(null);
   const [view, setView] = useState<PlayerView | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [roomCode, setRoomCode] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export function useSocket(): SocketState {
         case "joined":
           setPlayerId(msg.playerId);
           setRoomCode(msg.roomCode);
+          roomCodeRef.current = msg.roomCode;
           setIsHost(msg.isHost);
           window.localStorage.setItem(`timebomb:${msg.roomCode}:playerId`, msg.playerId);
           window.localStorage.setItem("timebomb:lastRoomCode", msg.roomCode);
@@ -37,6 +39,7 @@ export function useSocket(): SocketState {
         case "state":
           setView(msg.view);
           setPlayerId(msg.view.myPlayerId);
+          savePlayerIdentity(roomCodeRef.current, msg.view);
           break;
         case "error":
           setError(msg.message);
@@ -60,8 +63,11 @@ export function useSocket(): SocketState {
       const normalizedRoomCode = roomCodeInput.trim().toUpperCase();
       const trimmedName = name.trim();
       if (!trimmedName || !normalizedRoomCode) return;
+      const savedName = window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerName`);
       const savedPlayerId =
-        window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerId`) ?? undefined;
+        savedName === trimmedName
+          ? window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerId`) ?? undefined
+          : undefined;
       send({
         type: "join",
         name: trimmedName,
@@ -73,4 +79,12 @@ export function useSocket(): SocketState {
   );
 
   return { view, playerId, roomCode, isHost, error, join, send };
+}
+
+function savePlayerIdentity(roomCode: string | null, view: PlayerView): void {
+  if (!roomCode) return;
+  const me = view.players.find((p) => p.id === view.myPlayerId);
+  if (!me) return;
+  window.localStorage.setItem(`timebomb:${roomCode}:playerId`, view.myPlayerId);
+  window.localStorage.setItem(`timebomb:${roomCode}:playerName`, me.name);
 }
