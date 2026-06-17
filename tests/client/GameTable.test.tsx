@@ -46,4 +46,20 @@ describe("GameTable", () => {
     render(<GameTable view={notMine} send={() => {}} />);
     expect(screen.queryByRole("button", { name: /カード/ })).toBeNull();
   });
+
+  it("直前のカット結果を演出バナーとして表示する", () => {
+    const withCut: PlayerView = {
+      ...baseView,
+      lastCut: {
+        cutterId: "p0",
+        targetId: "p1",
+        cardIndex: 0,
+        revealedType: "bomb"
+      }
+    };
+    render(<GameTable view={withCut} send={() => {}} />);
+    expect(screen.getByText("導線カット")).toBeInTheDocument();
+    expect(screen.getByText("ボム")).toBeInTheDocument();
+    expect(screen.getByTestId("cut-result-banner")).toHaveClass("cut-result-bomb");
+  });
 });

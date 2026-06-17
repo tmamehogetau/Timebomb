@@ -11,18 +11,18 @@ export function GameTable({ view, send }: Props) {
   return (
     <section className="game-table">
       <div className="hud">
-        <span>R{view.round}/4</span>
-        <span>
+        <span className="hud-chip hud-round">R{view.round}/4</span>
+        <span className="hud-chip hud-defuse">
           解除 {view.defuseChipsFlipped}/{view.defuseChipsTotal}
         </span>
-        <span>
+        <span className="hud-chip hud-cuts">
           カット {view.cutsThisRound}/{view.cutsPerRound}
         </span>
-        <span>{isMyTurn ? "あなたの手番" : "他プレイヤーの手番"}</span>
+        <span className={`hud-chip ${isMyTurn ? "hud-turn-mine" : "hud-turn-wait"}`}>
+          {isMyTurn ? "あなたの手番" : "他プレイヤーの手番"}
+        </span>
       </div>
-      <div className="last-cut">
-        {view.lastCut && <span>直前: {cardLabel(view.lastCut.revealedType)}</span>}
-      </div>
+      {view.lastCut ? <CutResultBanner type={view.lastCut.revealedType} /> : <div className="last-cut idle" />}
       <div className="grid">
         {view.players.map((p) => (
           <PlayerPanel
@@ -40,6 +40,26 @@ export function GameTable({ view, send }: Props) {
   );
 }
 
+function CutResultBanner({ type }: { type: CardType }) {
+  return (
+    <div
+      className={`last-cut cut-result cut-result-${type}`}
+      data-testid="cut-result-banner"
+      aria-live="polite"
+    >
+      <span className="cut-kicker">導線カット</span>
+      <strong>{cardLabel(type)}</strong>
+      <span className="cut-copy">{cutCopy(type)}</span>
+    </div>
+  );
+}
+
 function cardLabel(c: CardType): string {
   return c === "defuse" ? "解除" : c === "bomb" ? "ボム" : "しーん";
+}
+
+function cutCopy(c: CardType): string {
+  if (c === "defuse") return "解除チップが反転";
+  if (c === "bomb") return "ボマー勝利の導火線";
+  return "まだ沈黙が続く";
 }
