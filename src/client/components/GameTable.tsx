@@ -9,7 +9,7 @@ interface Props {
 export function GameTable({ view, send }: Props) {
   const isMyTurn = view.currentCutterId === view.myPlayerId;
   return (
-    <section className="game-table">
+    <section className={`game-table ${view.lastCut ? "game-table-has-reveal" : ""}`}>
       <div className="hud">
         <span className="hud-chip hud-round">R{view.round}/4</span>
         <span className="hud-chip hud-defuse">
@@ -22,7 +22,12 @@ export function GameTable({ view, send }: Props) {
           {isMyTurn ? "あなたの手番" : "他プレイヤーの手番"}
         </span>
       </div>
-      {view.lastCut ? <CutResultBanner type={view.lastCut.revealedType} /> : null}
+      {view.lastCut ? (
+        <CutResultBanner
+          key={`${view.lastCut.targetId}-${view.lastCut.cardIndex}-${view.cutsThisRound}`}
+          type={view.lastCut.revealedType}
+        />
+      ) : null}
       <div className="grid player-grid-expanded" data-testid="player-grid">
         {view.players.map((p) => (
           <PlayerPanel
@@ -47,9 +52,15 @@ function CutResultBanner({ type }: { type: CardType }) {
       data-testid="cut-result-banner"
       aria-live="polite"
     >
-      <span className="cut-kicker">導線カット</span>
-      <strong>{cardLabel(type)}</strong>
-      <span className="cut-copy">{cutCopy(type)}</span>
+      <div className={`cut-flip-card cut-flip-card-${type}`} data-testid="cut-flip-card" aria-hidden="true">
+        <span className="cut-flip-face cut-flip-back" />
+        <span className="cut-flip-face cut-flip-front">{cardLabel(type)}</span>
+      </div>
+      <div className="cut-result-copy">
+        <span className="cut-kicker">導線カット</span>
+        <strong>{cardLabel(type)}</strong>
+        <span className="cut-copy">{cutCopy(type)}</span>
+      </div>
     </div>
   );
 }

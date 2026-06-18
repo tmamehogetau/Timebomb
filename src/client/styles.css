@@ -92,6 +92,10 @@ button:disabled {
   flex-direction: column;
 }
 
+.game-table-has-reveal .grid {
+  animation: table-reveal-pulse 720ms ease-out;
+}
+
 .hud {
   display: flex;
   flex-wrap: wrap;
@@ -128,18 +132,110 @@ button:disabled {
 }
 
 .last-cut {
-  min-height: 3.2rem;
+  min-height: 7.5rem;
   text-align: center;
-  padding: 0.55rem;
+  padding: 0.75rem 1rem;
 }
 
 .cut-result {
-  display: grid;
+  position: relative;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
+  gap: 1rem;
+  overflow: hidden;
   border-bottom: 1px solid var(--line);
   animation: cut-reveal 460ms ease-out;
+}
+
+.cut-result::before,
+.cut-result::after {
+  content: "";
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+}
+
+.cut-result::before {
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  background: rgba(243, 201, 105, 0.13);
+  filter: blur(18px);
+  transform: scale(0.15);
+  animation: reveal-shockwave 740ms ease-out both;
+}
+
+.cut-result::after {
+  width: 42%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(245, 239, 227, 0.78), transparent);
+  transform: translateX(-160%) rotate(-5deg);
+  animation: reveal-sweep 680ms ease-out 120ms both;
+}
+
+.cut-flip-card {
+  position: relative;
+  z-index: 1;
+  width: 66px;
+  height: 92px;
+  flex: 0 0 auto;
+  perspective: 700px;
+  animation: cut-card-lift 760ms cubic-bezier(0.18, 0.86, 0.18, 1.06) both;
+}
+
+.cut-flip-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  backface-visibility: hidden;
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  font-weight: 900;
+}
+
+.cut-flip-back {
+  background:
+    linear-gradient(135deg, transparent 0 40%, rgba(243, 201, 105, 0.42) 41% 44%, transparent 45%),
+    linear-gradient(160deg, #2d303d, #171a22);
+  border-color: rgba(243, 201, 105, 0.44);
+  animation: cut-card-back-hide 760ms cubic-bezier(0.18, 0.86, 0.18, 1.06) both;
+}
+
+.cut-flip-front {
+  transform: rotateY(90deg);
+  color: #fff;
+  animation: cut-card-front-show 760ms cubic-bezier(0.18, 0.86, 0.18, 1.06) both;
+}
+
+.cut-flip-card-defuse .cut-flip-front {
+  background: linear-gradient(160deg, #286a4d, var(--green));
+  text-shadow: 0 0 14px rgba(94, 216, 154, 0.54);
+}
+
+.cut-flip-card-bomb .cut-flip-front {
+  background: linear-gradient(160deg, #7b2229, var(--red));
+  text-shadow: 0 0 14px rgba(240, 97, 97, 0.58);
+}
+
+.cut-flip-card-silence .cut-flip-front {
+  background: linear-gradient(160deg, #4f5361, #8b8e9d);
+}
+
+.cut-result-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.15rem;
+  justify-items: start;
+  min-width: 10rem;
+  text-align: left;
+  animation: reveal-copy-enter 500ms ease-out 210ms both;
 }
 
 .cut-kicker {
@@ -350,6 +446,95 @@ button.card-back:hover {
   }
 }
 
+@keyframes cut-card-lift {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) rotateZ(-4deg) scale(0.88);
+  }
+  38% {
+    opacity: 1;
+    transform: translateY(-6px) rotateZ(2deg) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateZ(0deg) scale(1);
+  }
+}
+
+@keyframes cut-card-back-hide {
+  0%,
+  36% {
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+  54%,
+  100% {
+    opacity: 0;
+    transform: rotateY(-90deg);
+  }
+}
+
+@keyframes cut-card-front-show {
+  0%,
+  42% {
+    opacity: 0;
+    transform: rotateY(90deg);
+  }
+  64% {
+    opacity: 1;
+    transform: rotateY(-8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0deg);
+  }
+}
+
+@keyframes reveal-copy-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes reveal-shockwave {
+  from {
+    opacity: 0.9;
+    transform: scale(0.15);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes reveal-sweep {
+  from {
+    opacity: 0;
+    transform: translateX(-160%) rotate(-5deg);
+  }
+  38% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(160%) rotate(-5deg);
+  }
+}
+
+@keyframes table-reveal-pulse {
+  from {
+    filter: brightness(1.2) saturate(1.18);
+  }
+  to {
+    filter: brightness(1) saturate(1);
+  }
+}
+
 @keyframes card-enter {
   from {
     opacity: 0;
@@ -415,6 +600,19 @@ button.card-back:hover {
 }
 
 @media (max-width: 620px) {
+  .cut-result {
+    gap: 0.7rem;
+  }
+
+  .cut-flip-card {
+    width: 54px;
+    height: 76px;
+  }
+
+  .cut-result-copy {
+    min-width: 0;
+  }
+
   .grid {
     grid-template-columns: 1fr;
     grid-auto-rows: minmax(170px, auto);

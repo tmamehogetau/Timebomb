@@ -64,7 +64,22 @@ describe("GameTable", () => {
     };
     render(<GameTable view={withCut} send={() => {}} />);
     expect(screen.getByText("導線カット")).toBeInTheDocument();
-    expect(screen.getByText("ボム")).toBeInTheDocument();
+    expect(screen.getAllByText("ボム").length).toBeGreaterThan(0);
     expect(screen.getByTestId("cut-result-banner")).toHaveClass("cut-result-bomb");
+  });
+
+  it("カット結果は裏面から結果面へめくれるカード演出を含む", () => {
+    const withCut: PlayerView = {
+      ...baseView,
+      lastCut: {
+        cutterId: "p0",
+        targetId: "p1",
+        cardIndex: 0,
+        revealedType: "defuse"
+      }
+    };
+    render(<GameTable view={withCut} send={() => {}} />);
+    expect(screen.getByTestId("cut-flip-card")).toHaveClass("cut-flip-card-defuse");
+    expect(screen.getByText("解除チップが反転")).toBeInTheDocument();
   });
 });
