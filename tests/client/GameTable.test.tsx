@@ -28,7 +28,9 @@ const baseView: PlayerView = {
 describe("GameTable", () => {
   it("自分のパネルはオモテ表示、他人は裏向き（枚数のみ）", () => {
     render(<GameTable view={baseView} send={() => {}} />);
-    expect(screen.getByText("解除")).toBeInTheDocument();
+    expect(screen.getByAltText("解除カード")).toHaveAttribute("src", "/cards/timebomb-card-defuse.png");
+    expect(screen.getByAltText("しーんカード")).toHaveAttribute("src", "/cards/timebomb-card-silence.png");
+    expect(screen.getAllByAltText("裏向きカード")[0]).toHaveAttribute("src", "/cards/timebomb-card-back.png");
     expect(screen.getAllByLabelText(/手札/).length).toBeGreaterThan(0);
   });
 

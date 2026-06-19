@@ -6,6 +6,14 @@ const CARD_LABEL: Record<CardType, string> = {
   silence: "しーん"
 };
 
+const CARD_ART: Record<CardType, string> = {
+  defuse: "/cards/timebomb-card-defuse.png",
+  bomb: "/cards/timebomb-card-bomb.png",
+  silence: "/cards/timebomb-card-silence.png"
+};
+
+const CARD_BACK_ART = "/cards/timebomb-card-back.png";
+
 interface Props {
   player: PlayerViewPublicPlayer;
   isMe: boolean;
@@ -35,21 +43,25 @@ export function PlayerPanel({ player, isMe, isCurrent, myHand, canCut, onCut }: 
       </header>
       <div className="hand" aria-label="手札">
         {isMe && myHand
-          ? myHand.map((c, i) => (
-              <span key={i} className={`card card-${c}`}>
-                {CARD_LABEL[c]}
+          ? myHand.map((card, index) => (
+              <span key={index} className={`card card-${card}`}>
+                <img src={CARD_ART[card]} alt={`${CARD_LABEL[card]}カード`} />
               </span>
             ))
-          : Array.from({ length: player.handSize }, (_, i) =>
+          : Array.from({ length: player.handSize }, (_, index) =>
               canCut ? (
                 <button
-                  key={i}
-                  aria-label={`カード${i}`}
+                  key={index}
+                  aria-label={`カード${index}`}
                   className="card card-back"
-                  onClick={() => onCut(i)}
-                />
+                  onClick={() => onCut(index)}
+                >
+                  <img src={CARD_BACK_ART} alt="裏向きカード" />
+                </button>
               ) : (
-                <span key={i} className="card card-back" />
+                <span key={index} className="card card-back">
+                  <img src={CARD_BACK_ART} alt="裏向きカード" />
+                </span>
               )
             )}
       </div>
