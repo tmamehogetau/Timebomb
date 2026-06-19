@@ -19,11 +19,20 @@ interface Props {
   isMe: boolean;
   isCurrent: boolean;
   revealedCards: RevealedCard[];
+  pendingRevealedCard: RevealedCard | null;
   canCut: boolean;
   onCut: (cardIndex: number) => void;
 }
 
-export function PlayerPanel({ player, isMe, isCurrent, revealedCards, canCut, onCut }: Props) {
+export function PlayerPanel({
+  player,
+  isMe,
+  isCurrent,
+  revealedCards,
+  pendingRevealedCard,
+  canCut,
+  onCut
+}: Props) {
   return (
     <div
       className={[
@@ -58,6 +67,11 @@ export function PlayerPanel({ player, isMe, isCurrent, revealedCards, canCut, on
             </span>
           )
         )}
+        {pendingRevealedCard ? (
+          <span className="card card-back card-pending-reveal">
+            <img src={CARD_BACK_ART} alt="公開待ちカード" />
+          </span>
+        ) : null}
         {revealedCards.map((card, index) => (
           <span key={`${card.cardIndex}-${index}`} className={`card card-revealed card-${card.type}`}>
             <img src={CARD_ART[card.type]} alt={`公開済み${CARD_LABEL[card.type]}カード`} />

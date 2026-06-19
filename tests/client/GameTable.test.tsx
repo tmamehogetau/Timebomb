@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { GameTable } from "../../src/client/components/GameTable";
@@ -48,6 +48,31 @@ describe("GameTable", () => {
     );
   });
 
+  it("盤面の公開カードは中央演出の反転完了後に表向きになる", () => {
+    vi.useFakeTimers();
+    try {
+      const withCut: PlayerView = {
+        ...baseView,
+        lastCut: {
+          cutterId: "p0",
+          targetId: "p1",
+          cardIndex: 0,
+          revealedType: "bomb"
+        },
+        revealedCards: [{ playerId: "p1", cardIndex: 0, type: "bomb" }]
+      };
+      render(<GameTable view={withCut} send={() => {}} />);
+      expect(screen.getByAltText("公開待ちカード")).toBeInTheDocument();
+      expect(screen.queryByAltText("公開済みボムカード")).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(screen.getByAltText("公開済みボムカード")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("手番時に他人のカードをクリックで cut 送信", async () => {
     const send = vi.fn();
     const user = userEvent.setup();
