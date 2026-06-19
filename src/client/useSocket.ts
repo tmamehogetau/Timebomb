@@ -63,11 +63,7 @@ export function useSocket(): SocketState {
       const normalizedRoomCode = roomCodeInput.trim().toUpperCase();
       const trimmedName = name.trim();
       if (!trimmedName || !normalizedRoomCode) return;
-      const savedName = window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerName`);
-      const savedPlayerId =
-        savedName === trimmedName
-          ? window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerId`) ?? undefined
-          : undefined;
+      const savedPlayerId = window.localStorage.getItem(`timebomb:${normalizedRoomCode}:playerId`) ?? undefined;
       send({
         type: "join",
         name: trimmedName,
