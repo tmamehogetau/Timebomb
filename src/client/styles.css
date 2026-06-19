@@ -267,6 +267,15 @@ button:disabled {
   font-weight: 900;
 }
 
+.cut-flip-face img,
+.reveal-cinema-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .cut-flip-back {
   background:
     linear-gradient(135deg, transparent 0 40%, rgba(243, 201, 105, 0.42) 41% 44%, transparent 45%),
@@ -467,7 +476,7 @@ button:disabled {
   font-size: 2.35rem;
   line-height: 1;
   text-shadow: 0 0 24px rgba(245, 239, 227, 0.22);
-  animation: cinema-text-rise 620ms ease-out 650ms both;
+  animation: cinema-text-rise 620ms ease-out 2350ms both;
 }
 
 .reveal-cinema-stage > span:last-child {
@@ -475,7 +484,7 @@ button:disabled {
   z-index: 1;
   color: var(--muted);
   font-weight: 800;
-  animation: cinema-text-rise 620ms ease-out 760ms both;
+  animation: cinema-text-rise 620ms ease-out 2500ms both;
 }
 
 .reveal-cinema-defuse .reveal-cinema-stage::before {

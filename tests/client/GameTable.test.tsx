@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { GameTable } from "../../src/client/components/GameTable";
@@ -81,7 +81,16 @@ describe("GameTable", () => {
       }
     };
     render(<GameTable view={withCut} send={() => {}} />);
-    expect(screen.getByTestId("cut-flip-card")).toHaveClass("cut-flip-card-defuse");
+    const flipCard = screen.getByTestId("cut-flip-card");
+    expect(flipCard).toHaveClass("cut-flip-card-defuse");
+    expect(within(flipCard).getByAltText("裏向きカード")).toHaveAttribute(
+      "src",
+      "/cards/timebomb-card-back.png"
+    );
+    expect(within(flipCard).getByAltText("解除カード")).toHaveAttribute(
+      "src",
+      "/cards/timebomb-card-defuse.png"
+    );
     expect(screen.getAllByText("解除チップが反転").length).toBeGreaterThan(0);
   });
 
@@ -96,8 +105,17 @@ describe("GameTable", () => {
       }
     };
     render(<GameTable view={withCut} send={() => {}} />);
-    expect(screen.getByTestId("reveal-cinema")).toHaveClass("reveal-cinema-bomb");
+    const cinema = screen.getByTestId("reveal-cinema");
+    expect(cinema).toHaveClass("reveal-cinema-bomb");
     expect(screen.getByText("カード公開")).toBeInTheDocument();
+    expect(within(cinema).getByAltText("裏向きカード")).toHaveAttribute(
+      "src",
+      "/cards/timebomb-card-back.png"
+    );
+    expect(within(cinema).getByAltText("ボムカード")).toHaveAttribute(
+      "src",
+      "/cards/timebomb-card-bomb.png"
+    );
   });
 
   it("ラウンドと現在の手番プレイヤーを大きな告知で表示する", () => {

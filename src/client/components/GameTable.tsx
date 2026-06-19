@@ -1,6 +1,14 @@
 import type { CardType, ClientMessage, PlayerView } from "../../shared/types";
 import { PlayerPanel } from "./PlayerPanel";
 
+const CARD_ART: Record<CardType, string> = {
+  defuse: "/cards/timebomb-card-defuse.png",
+  bomb: "/cards/timebomb-card-bomb.png",
+  silence: "/cards/timebomb-card-silence.png"
+};
+
+const CARD_BACK_ART = "/cards/timebomb-card-back.png";
+
 interface Props {
   view: PlayerView;
   send: (msg: ClientMessage) => void;
@@ -86,8 +94,12 @@ function CutResultBanner({ type }: { type: CardType }) {
       aria-live="polite"
     >
       <div className={`cut-flip-card cut-flip-card-${type}`} data-testid="cut-flip-card" aria-hidden="true">
-        <span className="cut-flip-face cut-flip-back" />
-        <span className="cut-flip-face cut-flip-front">{cardLabel(type)}</span>
+        <span className="cut-flip-face cut-flip-back">
+          <img src={CARD_BACK_ART} alt="裏向きカード" />
+        </span>
+        <span className="cut-flip-face cut-flip-front">
+          <img src={CARD_ART[type]} alt={`${cardLabel(type)}カード`} />
+        </span>
       </div>
       <div className="cut-result-copy">
         <span className="cut-kicker">導線カット</span>
@@ -109,8 +121,12 @@ function RevealCinema({ type }: { type: CardType }) {
       <div className="reveal-cinema-stage">
         <span className="reveal-cinema-kicker">カード公開</span>
         <div className="reveal-cinema-card" aria-hidden="true">
-          <span className="reveal-cinema-face reveal-cinema-back" />
-          <span className="reveal-cinema-face reveal-cinema-front">{cardLabel(type)}</span>
+          <span className="reveal-cinema-face reveal-cinema-back">
+            <img src={CARD_BACK_ART} alt="裏向きカード" />
+          </span>
+          <span className="reveal-cinema-face reveal-cinema-front">
+            <img src={CARD_ART[type]} alt={`${cardLabel(type)}カード`} />
+          </span>
         </div>
         <strong>{cardLabel(type)}</strong>
         <span>{cutCopy(type)}</span>
