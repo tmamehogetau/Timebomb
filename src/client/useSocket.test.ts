@@ -66,7 +66,7 @@ describe("useSocket", () => {
     );
   });
 
-  it("保存済み playerId があれば名前を再入力しても同じ席へ再入室する", () => {
+  it("保存済み playerId があっても別名なら新規参加として送る", () => {
     window.localStorage.setItem("timebomb:ABCD:playerId", "saved-player");
     window.localStorage.setItem("timebomb:ABCD:playerName", "Alice");
     const { result } = renderHook(() => useSocket());
@@ -74,7 +74,7 @@ describe("useSocket", () => {
       result.current.join("Bob", "abcd");
     });
     expect(FakeSocket.last!.sent).toContain(
-      JSON.stringify({ type: "join", name: "Bob", roomCode: "ABCD", playerId: "saved-player" })
+      JSON.stringify({ type: "join", name: "Bob", roomCode: "ABCD", playerId: undefined })
     );
   });
 
