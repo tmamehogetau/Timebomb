@@ -8,8 +8,13 @@ interface Props {
 
 export function GameTable({ view, send }: Props) {
   const isMyTurn = view.currentCutterId === view.myPlayerId;
+  const currentPlayer = view.players.find((p) => p.id === view.currentCutterId);
+  const turnName = currentPlayer ? playerDisplayName(currentPlayer.name, currentPlayer.id === view.myPlayerId) : "手番不明";
+  const revealKey = view.lastCut
+    ? `${view.lastCut.targetId}-${view.lastCut.cardIndex}-${view.cutsThisRound}`
+    : "";
   return (
-    <section className={`game-table ${view.lastCut ? "game-table-has-reveal" : ""}`}>
+    <section className={`game-table ${view.lastCut ? "game-table-has-reveal" : ""}`.trim()}>
       <div className="hud">
         <span className="hud-chip hud-round">R{view.round}/4</span>
         <span className="hud-chip hud-defuse">
@@ -22,12 +27,19 @@ export function GameTable({ view, send }: Props) {
           {isMyTurn ? "あなたの手番" : "他プレイヤーの手番"}
         </span>
       </div>
+      <RoundTurnCue
+        key={`${view.round}-${view.currentCutterId}-${view.cutsThisRound}`}
+        round={view.round}
+        turnName={turnName}
+        isMyTurn={isMyTurn}
+      />
       {view.lastCut ? (
         <CutResultBanner
-          key={`${view.lastCut.targetId}-${view.lastCut.cardIndex}-${view.cutsThisRound}`}
+          key={`banner-${revealKey}`}
           type={view.lastCut.revealedType}
         />
       ) : null}
+      {view.lastCut ? <RevealCinema key={`cinema-${revealKey}`} type={view.lastCut.revealedType} /> : null}
       <div className="grid player-grid-expanded" data-testid="player-grid">
         {view.players.map((p) => (
           <PlayerPanel
@@ -42,6 +54,27 @@ export function GameTable({ view, send }: Props) {
         ))}
       </div>
     </section>
+  );
+}
+
+function RoundTurnCue({
+  round,
+  turnName,
+  isMyTurn
+}: {
+  round: number;
+  turnName: string;
+  isMyTurn: boolean;
+}) {
+  return (
+    <div
+      className={`round-turn-cue ${isMyTurn ? "round-turn-cue-mine" : "round-turn-cue-other"}`}
+      data-testid="round-turn-cue"
+      aria-live="polite"
+    >
+      <span>ROUND {round}</span>
+      <strong>{turnName}</strong>
+    </div>
   );
 }
 
@@ -65,6 +98,27 @@ function CutResultBanner({ type }: { type: CardType }) {
   );
 }
 
+function RevealCinema({ type }: { type: CardType }) {
+  return (
+    <div
+      className={`reveal-cinema reveal-cinema-${type}`}
+      data-testid="reveal-cinema"
+      aria-live="polite"
+    >
+      <div className="reveal-cinema-backdrop" />
+      <div className="reveal-cinema-stage">
+        <span className="reveal-cinema-kicker">カード公開</span>
+        <div className="reveal-cinema-card" aria-hidden="true">
+          <span className="reveal-cinema-face reveal-cinema-back" />
+          <span className="reveal-cinema-face reveal-cinema-front">{cardLabel(type)}</span>
+        </div>
+        <strong>{cardLabel(type)}</strong>
+        <span>{cutCopy(type)}</span>
+      </div>
+    </div>
+  );
+}
+
 function cardLabel(c: CardType): string {
   return c === "defuse" ? "解除" : c === "bomb" ? "ボム" : "しーん";
 }
@@ -73,4 +127,8 @@ function cutCopy(c: CardType): string {
   if (c === "defuse") return "解除チップが反転";
   if (c === "bomb") return "ボマー勝利の導火線";
   return "まだ沈黙が続く";
+}
+
+function playerDisplayName(name: string, isMe: boolean): string {
+  return isMe ? "あなたの手番" : `${name}の手番`;
 }
