@@ -46,6 +46,8 @@ export function attachWebSocketServer(
         send(socket, { type: "error", message: "先に join してください" });
         return;
       }
+      if (msg.type === "heartbeat") return;
+
       const room = rooms.get(session.roomCode);
       if (!room) {
         send(socket, { type: "error", message: "ルームが存在しません" });
@@ -184,6 +186,8 @@ function parseMessage(data: WebSocket.RawData): { message: ClientMessage } | { e
       return { message: { type: "start" } };
     case "ready":
       return { message: { type: "ready" } };
+    case "heartbeat":
+      return { message: { type: "heartbeat" } };
     case "cut":
       if (typeof r.targetId === "string" && typeof r.cardIndex === "number" && Number.isInteger(r.cardIndex)) {
         return { message: { type: "cut", targetId: r.targetId, cardIndex: r.cardIndex } };

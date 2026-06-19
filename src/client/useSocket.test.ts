@@ -115,6 +115,49 @@ describe("useSocket", () => {
     expect(result.current.playerId).toBe("p1");
     expect(window.localStorage.getItem("timebomb:ABCD:playerName")).toBe("Bob");
   });
+  it("対局中だけ5分ごとにWebSocketハートビートを送る", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useSocket());
+    const activeView = {
+      phase: "round_play",
+      round: 1,
+      spyEnabled: false,
+      myPlayerId: "p1",
+      myRole: "police",
+      myHand: [],
+      currentCutterId: "p0",
+      defuseChipsFlipped: 0,
+      defuseChipsTotal: 4,
+      cutsThisRound: 0,
+      cutsPerRound: 4,
+      players: [
+        { id: "p0", name: "Alice", handSize: 5, connected: true, ready: true, isHost: true },
+        { id: "p1", name: "Bob", handSize: 5, connected: true, ready: true, isHost: false }
+      ],
+      lastCut: null,
+      revealedCards: [],
+      winners: null,
+      revealedRoles: null
+    };
+    act(() => {
+      FakeSocket.last!.onmessage?.({ data: JSON.stringify({ type: "state", view: activeView }) });
+    });
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+    expect(FakeSocket.last!.sent).toContain(JSON.stringify({ type: "heartbeat" }));
+
+    act(() => {
+      FakeSocket.last!.onmessage?.({
+        data: JSON.stringify({ type: "state", view: { ...activeView, phase: "game_end" } })
+      });
+    });
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+    expect(FakeSocket.last!.sent.filter((message) => message === JSON.stringify({ type: "heartbeat" }))).toHaveLength(1);
+    expect(result.current.view?.phase).toBe("game_end");
+  });
   it("保存済みの参加情報があっても接続時に自動再参加しない", () => {
     window.localStorage.setItem("timebomb:lastRoomCode", "ABCD");
     window.localStorage.setItem("timebomb:ABCD:playerId", "saved-player");

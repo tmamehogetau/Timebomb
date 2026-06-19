@@ -82,6 +82,7 @@ export type ClientMessage =
   | { type: "setSpy"; enabled: boolean }
   | { type: "start" }
   | { type: "ready" }
+  | { type: "heartbeat" }
   | { type: "cut"; targetId: string; cardIndex: number }
   | { type: "restart" };
 
