@@ -35,17 +35,24 @@ describe("GameTable", () => {
     expect(screen.getAllByLabelText(/手札/).length).toBeGreaterThan(0);
   });
 
-  it("公開されたカードは次ラウンドまで対象プレイヤーの盤面に残る", () => {
+  it("公開されたカードは選んだ位置に残る", () => {
     const withRevealed = {
       ...baseView,
       myHand: [],
-      revealedCards: [{ playerId: "p1", cardIndex: 0, type: "bomb" }]
+      players: baseView.players.map((player) =>
+        player.id === "p1" ? { ...player, handSize: 4 } : player
+      ),
+      revealedCards: [{ playerId: "p1", cardIndex: 2, type: "bomb" }]
     } as PlayerView;
     render(<GameTable view={withRevealed} send={() => {}} />);
-    expect(screen.getByAltText("公開済みボムカード")).toHaveAttribute(
-      "src",
-      "/cards/timebomb-card-bomb.png"
-    );
+    const otherHand = screen.getAllByLabelText("手札")[1];
+    expect(within(otherHand).getAllByRole("img").map((image) => (image as HTMLImageElement).alt)).toEqual([
+      "裏向きカード",
+      "裏向きカード",
+      "公開済みボムカード",
+      "裏向きカード",
+      "裏向きカード"
+    ]);
   });
 
   it("盤面の公開カードは中央演出の反転完了後に表向きになる", () => {
