@@ -115,7 +115,7 @@ describe("useSocket", () => {
     expect(result.current.playerId).toBe("p1");
     expect(window.localStorage.getItem("timebomb:ABCD:playerName")).toBe("Bob");
   });
-  it("保存済みの参加情報で接続時に自動再参加する", () => {
+  it("保存済みの参加情報があっても接続時に自動再参加しない", () => {
     window.localStorage.setItem("timebomb:lastRoomCode", "ABCD");
     window.localStorage.setItem("timebomb:ABCD:playerId", "saved-player");
     window.localStorage.setItem("timebomb:ABCD:playerName", "Alice");
@@ -125,8 +125,6 @@ describe("useSocket", () => {
       FakeSocket.last!.onopen?.();
     });
 
-    expect(FakeSocket.last!.sent).toContain(
-      JSON.stringify({ type: "join", name: "Alice", roomCode: "ABCD", playerId: "saved-player" })
-    );
+    expect(FakeSocket.last!.sent).toEqual([]);
   });
 });
