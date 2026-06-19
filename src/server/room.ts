@@ -107,7 +107,10 @@ export class Room {
           cardIndex: msg.cardIndex
         });
         if (result.kind === "invalid") return [{ type: "error", message: result.reason }];
-        advanceRound(this.state, this.shuffle);
+        break;
+      }
+      case "advanceRound": {
+        if (this.state.phase === "round_end") advanceRound(this.state, this.shuffle);
         break;
       }
       case "restart": {

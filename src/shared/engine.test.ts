@@ -123,6 +123,25 @@ describe("lifecycle", () => {
     expect(s.phase).toBe("round_play");
     expect(s.players.every((p) => p.hand.length === 5)).toBe(true);
   });
+
+  it("beginPlay は確認後に各プレイヤーの手札配置をシャッフルする", () => {
+    const s = createInitialState();
+    s.players = makePlayers(4);
+    startGame(s, identityShuffle);
+    s.players[0].hand = ["defuse", "bomb", "silence", "defuse", "silence"];
+    s.players[1].hand = ["silence", "defuse", "silence", "bomb", "silence"];
+    s.players[2].hand = ["bomb", "silence", "defuse", "silence", "defuse"];
+    s.players[3].hand = ["silence", "bomb", "defuse", "silence", "defuse"];
+    const beforeHands = s.players.map((player) => [...player.hand]);
+
+    beginPlay(s, (items) => [...items].reverse());
+
+    expect(s.phase).toBe("round_play");
+    s.players.forEach((player, index) => {
+      expect(player.hand).toEqual([...beforeHands[index]].reverse());
+      expect([...player.hand].sort()).toEqual([...beforeHands[index]].sort());
+    });
+  });
 });
 
 describe("applyCut", () => {

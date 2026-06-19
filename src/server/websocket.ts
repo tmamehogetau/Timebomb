@@ -188,6 +188,8 @@ function parseMessage(data: WebSocket.RawData): { message: ClientMessage } | { e
       return { message: { type: "ready" } };
     case "heartbeat":
       return { message: { type: "heartbeat" } };
+    case "advanceRound":
+      return { message: { type: "advanceRound" } };
     case "cut":
       if (typeof r.targetId === "string" && typeof r.cardIndex === "number" && Number.isInteger(r.cardIndex)) {
         return { message: { type: "cut", targetId: r.targetId, cardIndex: r.cardIndex } };

@@ -106,6 +106,9 @@ export function allReady(state: GameState): boolean {
 
 export function beginPlay(state: GameState, shuffle: Shuffle): void {
   if (state.phase !== "role_reveal") return;
+  state.players.forEach((player) => {
+    player.hand = shuffle(player.hand);
+  });
   state.phase = "round_play";
 }
 

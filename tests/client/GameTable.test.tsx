@@ -88,6 +88,31 @@ describe("GameTable", () => {
     await user.click(cards[0]);
     expect(send).toHaveBeenCalledWith(expect.objectContaining({ type: "cut", targetId: "p1" }));
   });
+  it("公開演出中は次の cut を送信できない", () => {
+    vi.useFakeTimers();
+    try {
+      const withCut: PlayerView = {
+        ...baseView,
+        currentCutterId: "p0",
+        lastCut: {
+          cutterId: "p1",
+          targetId: "p0",
+          cardIndex: 0,
+          revealedType: "silence"
+        },
+        revealedCards: [{ playerId: "p0", cardIndex: 0, type: "silence" }]
+      };
+      render(<GameTable view={withCut} send={() => {}} />);
+      expect(screen.queryByRole("button", { name: /カード/ })).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(6200);
+      });
+      expect(screen.getAllByRole("button", { name: /カード/ }).length).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it("手番でないとクリックできない", () => {
     const notMine = { ...baseView, currentCutterId: "p1" };

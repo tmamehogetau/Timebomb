@@ -95,6 +95,36 @@ describe("App", () => {
       vi.useRealTimers();
     }
   });
+  it("round_end の公開演出後に次ラウンド進行を送る", () => {
+    vi.useFakeTimers();
+    try {
+      socketState.current.playerId = "p0";
+      socketState.current.roomCode = "ABCD";
+      socketState.current.view = {
+        ...lobbyView("p0", true),
+        phase: "round_end",
+        round: 1,
+        currentCutterId: "p1",
+        cutsThisRound: 4,
+        lastCut: { cutterId: "p0", targetId: "p1", cardIndex: 0, revealedType: "silence" },
+        revealedCards: [{ playerId: "p1", cardIndex: 0, type: "silence" }]
+      };
+      render(<App />);
+      expect(socketState.current.send).not.toHaveBeenCalledWith({ type: "advanceRound" });
+
+      act(() => {
+        vi.advanceTimersByTime(6199);
+      });
+      expect(socketState.current.send).not.toHaveBeenCalledWith({ type: "advanceRound" });
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(socketState.current.send).toHaveBeenCalledWith({ type: "advanceRound" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("ホスト状態は joined 応答ではなく最新 view.players から導出する", () => {
     socketState.current.playerId = "p1";
     socketState.current.roomCode = "ABCD";

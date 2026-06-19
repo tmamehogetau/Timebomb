@@ -10,6 +10,7 @@ const CARD_ART: Record<CardType, string> = {
 
 const CARD_BACK_ART = "/cards/timebomb-card-back.png";
 const BOARD_REVEAL_DELAY_MS = 2500;
+const REVEAL_CINEMA_DURATION_MS = 6200;
 
 interface Props {
   view: PlayerView;
@@ -24,6 +25,7 @@ export function GameTable({ view, send }: Props) {
     ? `${view.lastCut.targetId}-${view.lastCut.cardIndex}-${view.cutsThisRound}`
     : "";
   const [completedRevealKey, setCompletedRevealKey] = useState<string | null>(null);
+  const [activeRevealKey, setActiveRevealKey] = useState<string | null>(view.lastCut ? revealKey : null);
   const allRevealedCards = view.revealedCards ?? [];
   const isLatestRevealVisible = !view.lastCut || completedRevealKey === revealKey;
   const pendingRevealedCard = isLatestRevealVisible
@@ -39,6 +41,20 @@ export function GameTable({ view, send }: Props) {
     const timerId = window.setTimeout(() => setCompletedRevealKey(revealKey), BOARD_REVEAL_DELAY_MS);
     return () => window.clearTimeout(timerId);
   }, [revealKey, view.lastCut]);
+
+  useEffect(() => {
+    if (!view.lastCut) {
+      setActiveRevealKey(null);
+      return;
+    }
+    setActiveRevealKey(revealKey);
+    const timerId = window.setTimeout(() => {
+      setActiveRevealKey((current) => (current === revealKey ? null : current));
+    }, REVEAL_CINEMA_DURATION_MS);
+    return () => window.clearTimeout(timerId);
+  }, [revealKey, view.lastCut]);
+
+  const isRevealActive = Boolean(view.lastCut && activeRevealKey === revealKey);
 
   return (
     <section className={`game-table ${view.lastCut ? "game-table-has-reveal" : ""}`.trim()}>
@@ -66,7 +82,7 @@ export function GameTable({ view, send }: Props) {
           type={view.lastCut.revealedType}
         />
       ) : null}
-      {view.lastCut ? <RevealCinema key={`cinema-${revealKey}`} type={view.lastCut.revealedType} /> : null}
+      {isRevealActive && view.lastCut ? <RevealCinema key={`cinema-${revealKey}`} type={view.lastCut.revealedType} /> : null}
       <div className="grid player-grid-expanded" data-testid="player-grid">
         {view.players.map((p) => (
           <PlayerPanel
@@ -76,7 +92,7 @@ export function GameTable({ view, send }: Props) {
             isCurrent={p.id === view.currentCutterId}
             revealedCards={visibleRevealedCards.filter((card) => card.playerId === p.id)}
             pendingRevealedCard={pendingRevealedCard?.playerId === p.id ? pendingRevealedCard : null}
-            canCut={isMyTurn && p.id !== view.myPlayerId}
+            canCut={!isRevealActive && isMyTurn && p.id !== view.myPlayerId}
             onCut={(cardIndex) => send({ type: "cut", targetId: p.id, cardIndex })}
           />
         ))}

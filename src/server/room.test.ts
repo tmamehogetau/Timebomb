@@ -73,6 +73,22 @@ describe("Room", () => {
     expect(r.state.lastCut!.targetId).toBe(target.id);
   });
 
+  it("ラウンド最後の cut 直後は次Rへ進まず round_end の公開状態を返す", () => {
+    const r = new Room("ABCD", identityShuffle);
+    const ids = fillRoom(r, 4);
+    r.handleCommand(ids[0], { type: "start" });
+    readyAll(r, ids);
+    for (let i = 0; i < 4; i++) {
+      const cutter = r.state.currentCutterId!;
+      const target = r.state.players.find((p) => p.id !== cutter && p.hand.length > 0)!;
+      r.handleCommand(cutter, { type: "cut", targetId: target.id, cardIndex: 0 });
+    }
+    expect(r.state.phase).toBe("round_end");
+    expect(r.state.round).toBe(1);
+    expect(r.state.cutsThisRound).toBe(4);
+    expect(r.state.revealedCards).toHaveLength(4);
+  });
+
   it("切断で connected=false、ホスト切断時は別人へ委譲", () => {
     const r = new Room("ABCD", identityShuffle);
     const ids = fillRoom(r, 4);

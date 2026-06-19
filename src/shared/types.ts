@@ -83,6 +83,7 @@ export type ClientMessage =
   | { type: "start" }
   | { type: "ready" }
   | { type: "heartbeat" }
+  | { type: "advanceRound" }
   | { type: "cut"; targetId: string; cardIndex: number }
   | { type: "restart" };
 

@@ -17,6 +17,10 @@ export function App() {
     v?.phase === "game_end" && v.lastCut
       ? `${v.lastCut.targetId}-${v.lastCut.cardIndex}-${v.cutsThisRound}`
       : null;
+  const roundEndRevealKey =
+    v?.phase === "round_end" && v.lastCut
+      ? `${v.lastCut.targetId}-${v.lastCut.cardIndex}-${v.cutsThisRound}`
+      : null;
 
   useEffect(() => {
     if (v?.phase !== "game_end") {
@@ -31,6 +35,13 @@ export function App() {
     const timerId = window.setTimeout(() => setShowGameOver(true), GAME_END_REVEAL_DURATION_MS);
     return () => window.clearTimeout(timerId);
   }, [gameEndRevealKey, v?.phase]);
+
+  useEffect(() => {
+    if (v?.phase !== "round_end") return;
+    const timerId = window.setTimeout(() => sock.send({ type: "advanceRound" }), GAME_END_REVEAL_DURATION_MS);
+    return () => window.clearTimeout(timerId);
+  }, [roundEndRevealKey, sock.send, v?.phase]);
+
   if (!sock.playerId || !v || v.phase === "lobby") {
     return (
       <Lobby
