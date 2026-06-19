@@ -80,6 +80,28 @@ describe("GameTable", () => {
     };
     render(<GameTable view={withCut} send={() => {}} />);
     expect(screen.getByTestId("cut-flip-card")).toHaveClass("cut-flip-card-defuse");
-    expect(screen.getByText("解除チップが反転")).toBeInTheDocument();
+    expect(screen.getAllByText("解除チップが反転").length).toBeGreaterThan(0);
+  });
+
+  it("カット結果は中央のシネマ演出として強調表示する", () => {
+    const withCut: PlayerView = {
+      ...baseView,
+      lastCut: {
+        cutterId: "p0",
+        targetId: "p1",
+        cardIndex: 0,
+        revealedType: "bomb"
+      }
+    };
+    render(<GameTable view={withCut} send={() => {}} />);
+    expect(screen.getByTestId("reveal-cinema")).toHaveClass("reveal-cinema-bomb");
+    expect(screen.getByText("カード公開")).toBeInTheDocument();
+  });
+
+  it("ラウンドと現在の手番プレイヤーを大きな告知で表示する", () => {
+    const otherTurn = { ...baseView, currentCutterId: "p1" };
+    render(<GameTable view={otherTurn} send={() => {}} />);
+    expect(screen.getByTestId("round-turn-cue")).toHaveTextContent("ROUND 1");
+    expect(screen.getByTestId("round-turn-cue")).toHaveTextContent("Otherの手番");
   });
 });
