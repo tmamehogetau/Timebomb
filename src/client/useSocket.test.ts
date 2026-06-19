@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSocket } from "./useSocket";
 
 class FakeSocket {
+  onopen: (() => void) | null = null;
   onmessage: ((ev: { data: string }) => void) | null = null;
   onclose: (() => void) | null = null;
   sent: string[] = [];
@@ -113,5 +114,19 @@ describe("useSocket", () => {
     });
     expect(result.current.playerId).toBe("p1");
     expect(window.localStorage.getItem("timebomb:ABCD:playerName")).toBe("Bob");
+  });
+  it("保存済みの参加情報で接続時に自動再参加する", () => {
+    window.localStorage.setItem("timebomb:lastRoomCode", "ABCD");
+    window.localStorage.setItem("timebomb:ABCD:playerId", "saved-player");
+    window.localStorage.setItem("timebomb:ABCD:playerName", "Alice");
+    renderHook(() => useSocket());
+
+    act(() => {
+      FakeSocket.last!.onopen?.();
+    });
+
+    expect(FakeSocket.last!.sent).toContain(
+      JSON.stringify({ type: "join", name: "Alice", roomCode: "ABCD", playerId: "saved-player" })
+    );
   });
 });

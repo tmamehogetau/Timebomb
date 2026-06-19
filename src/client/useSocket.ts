@@ -24,6 +24,14 @@ export function useSocket(): SocketState {
     const wsUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
+    ws.onopen = () => {
+      const savedRoomCode = window.localStorage.getItem("timebomb:lastRoomCode");
+      if (!savedRoomCode) return;
+      const savedPlayerId = window.localStorage.getItem(`timebomb:${savedRoomCode}:playerId`);
+      const savedName = window.localStorage.getItem(`timebomb:${savedRoomCode}:playerName`);
+      if (!savedPlayerId || !savedName) return;
+      ws.send(JSON.stringify({ type: "join", name: savedName, roomCode: savedRoomCode, playerId: savedPlayerId }));
+    };
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data as string) as ServerMessage;
       switch (msg.type) {
