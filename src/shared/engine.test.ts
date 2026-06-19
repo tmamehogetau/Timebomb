@@ -101,6 +101,7 @@ describe("lifecycle", () => {
     expect(s.phase).toBe("role_reveal");
     expect(s.round).toBe(1);
     expect(s.players.every((p) => p.role)).toBe(true);
+    expect(s.players.every((p) => p.hand.length === 5)).toBe(true);
     expect(s.currentCutterId).not.toBeNull();
   });
 
@@ -209,12 +210,14 @@ describe("advanceRound / restart", () => {
       applyCut(s, cutter, { targetId: target.id, cardIndex: 0 });
     }
     expect(s.phase).toBe("round_end");
+    expect(s.revealedCards).toHaveLength(4);
     const lastCutTarget = s.lastCut!.targetId;
     advanceRound(s, identityShuffle);
     expect(s.phase).toBe("round_play");
     expect(s.round).toBe(2);
     expect(s.currentCutterId).toBe(lastCutTarget);
     expect(s.players.every((p) => p.hand.length === 5)).toBe(true);
+    expect(s.revealedCards).toEqual([]);
   });
 
   it("R4 終了で未決着: spyありなら spy 勝ち", () => {

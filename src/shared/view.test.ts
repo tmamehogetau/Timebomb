@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { beginPlay, createInitialState, startGame, toPlayerView } from "./engine.js";
+import { applyCut, beginPlay, createInitialState, startGame, toPlayerView } from "./engine.js";
 import { identityShuffle } from "./random.js";
 import type { Player } from "./types.js";
 
@@ -16,14 +16,31 @@ function makePlayers(n: number): Player[] {
 }
 
 describe("toPlayerView 秘匿フィルタ", () => {
-  it("自分の手札オモテは自分にだけ見える", () => {
+  it("自分の手札は確認中だけ見え、プレイ開始後は非公開になる", () => {
+    const s = createInitialState();
+    s.players = makePlayers(4);
+    startGame(s, identityShuffle);
+    const me = s.players[0];
+    expect(toPlayerView(s, me.id).myHand).toEqual(me.hand);
+
+    beginPlay(s, identityShuffle);
+    expect(toPlayerView(s, me.id).myHand).toEqual([]);
+  });
+
+  it("カットされたカードだけが全員に公開される", () => {
     const s = createInitialState();
     s.players = makePlayers(4);
     startGame(s, identityShuffle);
     beginPlay(s, identityShuffle);
-    const me = s.players[0];
-    const view = toPlayerView(s, me.id);
-    expect(view.myHand).toEqual(me.hand);
+    const cutterId = s.currentCutterId!;
+    const target = s.players.find((player) => player.id !== cutterId)!;
+    target.hand[0] = "defuse";
+
+    applyCut(s, cutterId, { targetId: target.id, cardIndex: 0 });
+
+    expect(toPlayerView(s, "p0")).toMatchObject({
+      revealedCards: [{ playerId: target.id, cardIndex: 0, type: "defuse" }]
+    });
   });
 
   it("他人の手札オモテは一切含まれない（handSize のみ）", () => {

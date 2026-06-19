@@ -30,6 +30,12 @@ export interface RevealedRole {
   role: Role;
 }
 
+export interface RevealedCard {
+  playerId: string;
+  cardIndex: number;
+  type: CardType;
+}
+
 export interface GameState {
   phase: Phase;
   round: number;
@@ -39,6 +45,7 @@ export interface GameState {
   defuseChipsFlipped: number;
   cutsThisRound: number;
   lastCut: CutEvent | null;
+  revealedCards: RevealedCard[];
   winners: Role[] | null;
 }
 
@@ -65,6 +72,7 @@ export interface PlayerView {
   cutsPerRound: number;
   players: PlayerViewPublicPlayer[];
   lastCut: CutEvent | null;
+  revealedCards: RevealedCard[];
   winners: Role[] | null;
   revealedRoles: RevealedRole[] | null;
 }

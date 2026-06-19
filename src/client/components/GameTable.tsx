@@ -55,7 +55,7 @@ export function GameTable({ view, send }: Props) {
             player={p}
             isMe={p.id === view.myPlayerId}
             isCurrent={p.id === view.currentCutterId}
-            myHand={p.id === view.myPlayerId ? view.myHand : null}
+            revealedCards={(view.revealedCards ?? []).filter((card) => card.playerId === p.id)}
             canCut={isMyTurn && p.id !== view.myPlayerId}
             onCut={(cardIndex) => send({ type: "cut", targetId: p.id, cardIndex })}
           />

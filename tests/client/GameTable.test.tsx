@@ -21,17 +21,31 @@ const baseView: PlayerView = {
     { id: "p1", name: "Other", handSize: 5, connected: true, ready: true, isHost: false }
   ],
   lastCut: null,
+  revealedCards: [],
   winners: null,
   revealedRoles: null
 };
 
 describe("GameTable", () => {
-  it("自分のパネルはオモテ表示、他人は裏向き（枚数のみ）", () => {
+  it("プレイ中は自分を含む全員の未公開カードを裏向きで表示する", () => {
     render(<GameTable view={baseView} send={() => {}} />);
-    expect(screen.getByAltText("解除カード")).toHaveAttribute("src", "/cards/timebomb-card-defuse.png");
-    expect(screen.getByAltText("しーんカード")).toHaveAttribute("src", "/cards/timebomb-card-silence.png");
-    expect(screen.getAllByAltText("裏向きカード")[0]).toHaveAttribute("src", "/cards/timebomb-card-back.png");
+    expect(screen.queryByAltText("解除カード")).toBeNull();
+    expect(screen.queryByAltText("しーんカード")).toBeNull();
+    expect(screen.getAllByAltText("裏向きカード")).toHaveLength(7);
     expect(screen.getAllByLabelText(/手札/).length).toBeGreaterThan(0);
+  });
+
+  it("公開されたカードは次ラウンドまで対象プレイヤーの盤面に残る", () => {
+    const withRevealed = {
+      ...baseView,
+      myHand: [],
+      revealedCards: [{ playerId: "p1", cardIndex: 0, type: "bomb" }]
+    } as PlayerView;
+    render(<GameTable view={withRevealed} send={() => {}} />);
+    expect(screen.getByAltText("公開済みボムカード")).toHaveAttribute(
+      "src",
+      "/cards/timebomb-card-bomb.png"
+    );
   });
 
   it("手番時に他人のカードをクリックで cut 送信", async () => {

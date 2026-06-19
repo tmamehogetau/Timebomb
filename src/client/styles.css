@@ -73,6 +73,11 @@ input {
   object-fit: cover;
 }
 
+.role-reveal-hand {
+  justify-content: center;
+  margin: 1rem 0;
+}
+
 .join-form {
   display: grid;
   gap: 0.75rem;
@@ -594,6 +599,11 @@ button:disabled {
   animation: card-enter 260ms ease both;
 }
 
+
+.card-revealed {
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(243, 201, 105, 0.34);
+}
 .card-defuse {
   background: linear-gradient(160deg, #286a4d, var(--green));
 }
@@ -1011,6 +1021,7 @@ button.card-back:hover {
   }
 }
 
+
 @media (min-width: 1280px) {
   .card {
     width: 104px;
@@ -1018,6 +1029,7 @@ button.card-back:hover {
     font-size: 1.05rem;
   }
 }
+
 
 @media (max-width: 620px) {
   .round-turn-cue {

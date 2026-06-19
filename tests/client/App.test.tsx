@@ -42,7 +42,8 @@ function lobbyView(myPlayerId: string, isHost: boolean): PlayerView {
       isHost: isHost && i === 1
     })),
     lastCut: null,
-    winners: null,
+    revealedCards: [],
+  winners: null,
     revealedRoles: null
   };
 }

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RoleReveal } from "../../src/client/components/RoleReveal";
@@ -24,5 +25,16 @@ describe("RoleReveal", () => {
   ] as const)("%s の役職イラストを表示する", (role, alt, src) => {
     render(<RoleReveal role={role} ready={false} send={() => {}} />);
     expect(screen.getByAltText(alt)).toHaveAttribute("src", src);
+  });
+  it("確認タイムにだけ自分の手札を表向きで表示する", () => {
+    const props = {
+      role: "police",
+      ready: false,
+      send: () => {},
+      myHand: ["defuse", "bomb"]
+    } as unknown as ComponentProps<typeof RoleReveal>;
+    render(<RoleReveal {...props} />);
+    expect(screen.getByAltText("解除カード")).toHaveAttribute("src", "/cards/timebomb-card-defuse.png");
+    expect(screen.getByAltText("ボムカード")).toHaveAttribute("src", "/cards/timebomb-card-bomb.png");
   });
 });

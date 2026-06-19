@@ -15,7 +15,8 @@ import {
   type Player,
   type PlayerView,
   type PlayerViewPublicPlayer,
-  type Role
+  type Role,
+  type RevealedCard
 } from "./types.js";
 
 export type CutInput = { targetId: string; cardIndex: number };
@@ -33,6 +34,7 @@ export function createInitialState(): GameState {
     defuseChipsFlipped: 0,
     cutsThisRound: 0,
     lastCut: null,
+    revealedCards: [],
     winners: null
   };
 }
@@ -53,6 +55,7 @@ export function dealRound(state: GameState, shuffle: Shuffle): void {
   });
   state.cutsThisRound = 0;
   state.lastCut = null;
+  state.revealedCards = [];
 }
 
 export function assignRoles(players: Player[], spyEnabled: boolean, shuffle: Shuffle): void {
@@ -87,12 +90,13 @@ export function startGame(state: GameState, shuffle: Shuffle): void {
   state.defuseChipsFlipped = 0;
   state.cutsThisRound = 0;
   state.lastCut = null;
+  state.revealedCards = [];
   state.winners = null;
   state.players.forEach((p) => {
     p.ready = false;
-    p.hand = [];
   });
   assignRoles(state.players, state.spyEnabled, shuffle);
+  dealRound(state, shuffle);
   state.currentCutterId = pickRandomFirstCutter(state.players, shuffle);
 }
 
@@ -102,7 +106,6 @@ export function allReady(state: GameState): boolean {
 
 export function beginPlay(state: GameState, shuffle: Shuffle): void {
   if (state.phase !== "role_reveal") return;
-  dealRound(state, shuffle);
   state.phase = "round_play";
 }
 
@@ -129,6 +132,7 @@ export function applyCut(
     cardIndex: input.cardIndex,
     revealedType: revealed
   };
+  state.revealedCards.push({ playerId: input.targetId, cardIndex: input.cardIndex, type: revealed });
 
   state.cutsThisRound++;
   if (revealed === "defuse") {
@@ -168,6 +172,7 @@ export function restart(state: GameState): void {
   state.defuseChipsFlipped = 0;
   state.cutsThisRound = 0;
   state.lastCut = null;
+  state.revealedCards = [];
   state.winners = null;
   state.players.forEach((p) => {
     p.role = null;
@@ -199,7 +204,7 @@ export function toPlayerView(state: GameState, viewerId: string): PlayerView {
     spyEnabled: state.spyEnabled,
     myPlayerId: viewerId,
     myRole: me ? me.role : null,
-    myHand: me ? [...me.hand] : [],
+    myHand: me && state.phase === "role_reveal" ? [...me.hand] : [],
     currentCutterId: state.currentCutterId,
     defuseChipsFlipped: state.defuseChipsFlipped,
     defuseChipsTotal: n > 0 ? defuseChipsTotal(n) : 0,
@@ -207,6 +212,7 @@ export function toPlayerView(state: GameState, viewerId: string): PlayerView {
     cutsPerRound: n > 0 ? cutsPerRound(n) : 0,
     players,
     lastCut: state.lastCut,
+    revealedCards: state.revealedCards.map((card): RevealedCard => ({ ...card })),
     winners: state.winners,
     revealedRoles:
       state.phase === "game_end"

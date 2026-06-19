@@ -1,4 +1,4 @@
-import type { CardType, PlayerViewPublicPlayer } from "../../shared/types";
+import type { CardType, PlayerViewPublicPlayer, RevealedCard } from "../../shared/types";
 
 const CARD_LABEL: Record<CardType, string> = {
   defuse: "解除",
@@ -18,12 +18,12 @@ interface Props {
   player: PlayerViewPublicPlayer;
   isMe: boolean;
   isCurrent: boolean;
-  myHand: CardType[] | null;
+  revealedCards: RevealedCard[];
   canCut: boolean;
   onCut: (cardIndex: number) => void;
 }
 
-export function PlayerPanel({ player, isMe, isCurrent, myHand, canCut, onCut }: Props) {
+export function PlayerPanel({ player, isMe, isCurrent, revealedCards, canCut, onCut }: Props) {
   return (
     <div
       className={[
@@ -42,28 +42,27 @@ export function PlayerPanel({ player, isMe, isCurrent, myHand, canCut, onCut }: 
         <span className="status">{!player.connected ? "切断" : ""}</span>
       </header>
       <div className="hand" aria-label="手札">
-        {isMe && myHand
-          ? myHand.map((card, index) => (
-              <span key={index} className={`card card-${card}`}>
-                <img src={CARD_ART[card]} alt={`${CARD_LABEL[card]}カード`} />
-              </span>
-            ))
-          : Array.from({ length: player.handSize }, (_, index) =>
-              canCut ? (
-                <button
-                  key={index}
-                  aria-label={`カード${index}`}
-                  className="card card-back"
-                  onClick={() => onCut(index)}
-                >
-                  <img src={CARD_BACK_ART} alt="裏向きカード" />
-                </button>
-              ) : (
-                <span key={index} className="card card-back">
-                  <img src={CARD_BACK_ART} alt="裏向きカード" />
-                </span>
-              )
-            )}
+        {Array.from({ length: player.handSize }, (_, index) =>
+          canCut ? (
+            <button
+              key={index}
+              aria-label={`カード${index}`}
+              className="card card-back"
+              onClick={() => onCut(index)}
+            >
+              <img src={CARD_BACK_ART} alt="裏向きカード" />
+            </button>
+          ) : (
+            <span key={index} className="card card-back">
+              <img src={CARD_BACK_ART} alt="裏向きカード" />
+            </span>
+          )
+        )}
+        {revealedCards.map((card, index) => (
+          <span key={`${card.cardIndex}-${index}`} className={`card card-revealed card-${card.type}`}>
+            <img src={CARD_ART[card.type]} alt={`公開済み${CARD_LABEL[card.type]}カード`} />
+          </span>
+        ))}
       </div>
     </div>
   );

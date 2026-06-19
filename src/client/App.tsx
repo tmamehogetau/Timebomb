@@ -31,6 +31,7 @@ export function App() {
     return (
       <RoleReveal
         role={v.myRole ?? "police"}
+        myHand={v.myHand}
         ready={v.players.find((p) => p.id === v.myPlayerId)?.ready ?? false}
         send={sock.send}
       />
