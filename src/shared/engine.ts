@@ -6,7 +6,6 @@ import {
 } from "./config.js";
 import type { Shuffle } from "./random.js";
 import {
-  HAND_SIZE,
   MAX_PLAYERS,
   MIN_PLAYERS,
   TOTAL_ROUNDS,
@@ -35,6 +34,7 @@ export function createInitialState(): GameState {
     cutsThisRound: 0,
     lastCut: null,
     revealedCards: [],
+    discardedCards: [],
     winners: null
   };
 }
@@ -49,13 +49,23 @@ export function buildDeck(playerCount: number): CardType[] {
 }
 
 export function dealRound(state: GameState, shuffle: Shuffle): void {
-  const deck = shuffle(buildDeck(state.players.length));
+  const deck = shuffle(buildDeckForDeal(state));
+  const handSize = Math.floor(deck.length / state.players.length);
   state.players.forEach((p, i) => {
-    p.hand = deck.slice(i * HAND_SIZE, i * HAND_SIZE + HAND_SIZE);
+    p.hand = deck.slice(i * handSize, i * handSize + handSize);
   });
   state.cutsThisRound = 0;
   state.lastCut = null;
   state.revealedCards = [];
+}
+
+function buildDeckForDeal(state: GameState): CardType[] {
+  const deck = buildDeck(state.players.length);
+  state.discardedCards.forEach((discarded) => {
+    const index = deck.indexOf(discarded);
+    if (index >= 0) deck.splice(index, 1);
+  });
+  return deck;
 }
 
 export function assignRoles(players: Player[], spyEnabled: boolean, shuffle: Shuffle): void {
@@ -91,6 +101,7 @@ export function startGame(state: GameState, shuffle: Shuffle): void {
   state.cutsThisRound = 0;
   state.lastCut = null;
   state.revealedCards = [];
+  state.discardedCards = [];
   state.winners = null;
   state.players.forEach((p) => {
     p.ready = false;
@@ -136,6 +147,7 @@ export function applyCut(
     revealedType: revealed
   };
   state.revealedCards.push({ playerId: input.targetId, cardIndex: input.cardIndex, type: revealed });
+  state.discardedCards.push(revealed);
 
   state.cutsThisRound++;
   if (revealed === "defuse") {
@@ -179,6 +191,7 @@ export function restart(state: GameState): void {
   state.cutsThisRound = 0;
   state.lastCut = null;
   state.revealedCards = [];
+  state.discardedCards = [];
   state.winners = null;
   state.players.forEach((p) => {
     p.role = null;

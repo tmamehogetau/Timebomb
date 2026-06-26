@@ -46,6 +46,7 @@ export interface GameState {
   cutsThisRound: number;
   lastCut: CutEvent | null;
   revealedCards: RevealedCard[];
+  discardedCards: CardType[];
   winners: Role[] | null;
 }
 

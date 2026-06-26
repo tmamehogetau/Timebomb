@@ -235,11 +235,35 @@ describe("advanceRound / restart", () => {
     expect(s.phase).toBe("role_reveal");
     expect(s.round).toBe(2);
     expect(s.currentCutterId).toBe(lastCutTarget);
-    expect(s.players.every((p) => p.hand.length === 5)).toBe(true);
+    expect(s.players.every((p) => p.hand.length === 4)).toBe(true);
     expect(s.players.every((p) => !p.ready)).toBe(true);
     expect(s.revealedCards).toEqual([]);
   });
 
+  it("次ラウンドの配布では公開済みカードを山に戻さない", () => {
+    const s = setup4();
+    for (let i = 0; i < 4; i++) {
+      const cutter = s.currentCutterId!;
+      const target = s.players.find((p) => p.id !== cutter && p.hand.length > 0)!;
+      applyCut(s, cutter, { targetId: target.id, cardIndex: 0 });
+    }
+    expect(s.phase).toBe("round_end");
+    expect(s.revealedCards.map((card) => card.type)).toEqual([
+      "silence",
+      "silence",
+      "silence",
+      "silence"
+    ]);
+
+    advanceRound(s, identityShuffle);
+
+    const nextRoundCards = s.players.flatMap((player) => player.hand);
+    expect(nextRoundCards).toHaveLength(16);
+    expect(s.players.every((player) => player.hand.length === 4)).toBe(true);
+    expect(nextRoundCards.filter((card) => card === "silence")).toHaveLength(11);
+    expect(nextRoundCards.filter((card) => card === "defuse")).toHaveLength(4);
+    expect(nextRoundCards.filter((card) => card === "bomb")).toHaveLength(1);
+  });
   it("R4 終了で未決着: spyありなら spy 勝ち", () => {
     const s = setup4();
     s.spyEnabled = true;
