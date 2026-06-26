@@ -164,7 +164,10 @@ export function advanceRound(state: GameState, shuffle: Shuffle): void {
   }
   state.round++;
   dealRound(state, shuffle);
-  state.phase = "round_play";
+  state.players.forEach((p) => {
+    p.ready = false;
+  });
+  state.phase = "role_reveal";
 }
 
 export function restart(state: GameState): void {

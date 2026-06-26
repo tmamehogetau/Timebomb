@@ -221,7 +221,7 @@ describe("applyCut", () => {
 });
 
 describe("advanceRound / restart", () => {
-  it("round_end から次Rへ。ターン継承で先手は前R最終被カット者", () => {
+  it("round_end から次Rの確認フェイズへ。ターン継承で先手は前R最終被カット者", () => {
     const s = setup4();
     for (let i = 0; i < 4; i++) {
       const cutter = s.currentCutterId!;
@@ -232,10 +232,11 @@ describe("advanceRound / restart", () => {
     expect(s.revealedCards).toHaveLength(4);
     const lastCutTarget = s.lastCut!.targetId;
     advanceRound(s, identityShuffle);
-    expect(s.phase).toBe("round_play");
+    expect(s.phase).toBe("role_reveal");
     expect(s.round).toBe(2);
     expect(s.currentCutterId).toBe(lastCutTarget);
     expect(s.players.every((p) => p.hand.length === 5)).toBe(true);
+    expect(s.players.every((p) => !p.ready)).toBe(true);
     expect(s.revealedCards).toEqual([]);
   });
 
