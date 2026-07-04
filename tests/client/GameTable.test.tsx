@@ -80,6 +80,67 @@ describe("GameTable", () => {
       vi.useRealTimers();
     }
   });
+  it("カードが選択可能になってからの経過秒数を表示する", () => {
+    vi.useFakeTimers();
+    try {
+      render(<GameTable view={baseView} send={() => {}} />);
+      expect(screen.getByTestId("turn-elapsed")).toHaveTextContent("相談 0秒");
+
+      act(() => {
+        vi.advanceTimersByTime(3200);
+      });
+      expect(screen.getByTestId("turn-elapsed")).toHaveTextContent("相談 3秒");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("カードを引くプレイヤーが変わると経過秒数をリセットする", () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(<GameTable view={baseView} send={() => {}} />);
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(screen.getByTestId("turn-elapsed")).toHaveTextContent("相談 2秒");
+
+      rerender(<GameTable view={{ ...baseView, currentCutterId: "p1" }} send={() => {}} />);
+      expect(screen.getByTestId("turn-elapsed")).toHaveTextContent("相談 0秒");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("公開演出中は経過秒数を進めず、選択可能になってから数える", () => {
+    vi.useFakeTimers();
+    try {
+      const withCut: PlayerView = {
+        ...baseView,
+        currentCutterId: "p0",
+        lastCut: {
+          cutterId: "p1",
+          targetId: "p0",
+          cardIndex: 0,
+          revealedType: "silence"
+        },
+        revealedCards: [{ playerId: "p0", cardIndex: 0, type: "silence" }]
+      };
+      render(<GameTable view={withCut} send={() => {}} />);
+      expect(screen.getByTestId("turn-elapsed")).toHaveTextContent("相談 0秒");
+
+      act(() => {
+        vi.advanceTimersByTime(6200);
+      });
+      expect(screen.getByTestId("turn-elapsed")).toHaveTextContent("相談 0秒");
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByTestId("turn-elapsed")).toHaveTextContent("相談 1秒");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("手番時に他人のカードをクリックで cut 送信", async () => {
     const send = vi.fn();
     const user = userEvent.setup();

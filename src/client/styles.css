@@ -159,6 +159,11 @@ button:disabled {
   color: var(--gold);
 }
 
+.hud-timer {
+  color: var(--ink);
+  background: rgba(245, 239, 227, 0.08);
+}
+
 .round-turn-cue {
   position: absolute;
   top: 4.6rem;

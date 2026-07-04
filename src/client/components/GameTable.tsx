@@ -55,6 +55,17 @@ export function GameTable({ view, send }: Props) {
   }, [revealKey, view.lastCut]);
 
   const isRevealActive = Boolean(view.lastCut && activeRevealKey === revealKey);
+  const isCardSelectionOpen = view.phase === "round_play" && Boolean(view.currentCutterId) && !isRevealActive;
+  const [turnElapsedSeconds, setTurnElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    setTurnElapsedSeconds(0);
+    if (!isCardSelectionOpen) return;
+    const timerId = window.setInterval(() => {
+      setTurnElapsedSeconds((seconds) => seconds + 1);
+    }, 1000);
+    return () => window.clearInterval(timerId);
+  }, [isCardSelectionOpen, view.currentCutterId]);
 
   return (
     <section className={`game-table ${view.lastCut ? "game-table-has-reveal" : ""}`.trim()}>
@@ -68,6 +79,9 @@ export function GameTable({ view, send }: Props) {
         </span>
         <span className={`hud-chip ${isMyTurn ? "hud-turn-mine" : "hud-turn-wait"}`}>
           {isMyTurn ? "あなたの手番" : "他プレイヤーの手番"}
+        </span>
+        <span className="hud-chip hud-timer" data-testid="turn-elapsed" aria-label="相談時間">
+          相談 {turnElapsedSeconds}秒
         </span>
       </div>
       <RoundTurnCue
