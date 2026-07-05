@@ -255,5 +255,6 @@ describe("GameTable", () => {
     render(<GameTable view={otherTurn} send={() => {}} />);
     expect(screen.getByTestId("round-turn-cue")).toHaveTextContent("ROUND 1");
     expect(screen.getByTestId("round-turn-cue")).toHaveTextContent("Otherの手番");
+    expect(screen.getByTestId("round-turn-cue")).toHaveTextContent("会話時間 0秒");
   });
 });

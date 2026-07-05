@@ -89,6 +89,7 @@ export function GameTable({ view, send }: Props) {
         round={view.round}
         turnName={turnName}
         isMyTurn={isMyTurn}
+        elapsedSeconds={turnElapsedSeconds}
       />
       {view.lastCut ? (
         <CutResultBanner
@@ -118,11 +119,13 @@ export function GameTable({ view, send }: Props) {
 function RoundTurnCue({
   round,
   turnName,
-  isMyTurn
+  isMyTurn,
+  elapsedSeconds
 }: {
   round: number;
   turnName: string;
   isMyTurn: boolean;
+  elapsedSeconds: number;
 }) {
   return (
     <div
@@ -132,6 +135,7 @@ function RoundTurnCue({
     >
       <span>ROUND {round}</span>
       <strong>{turnName}</strong>
+      <span className="round-turn-cue-time">会話時間 {elapsedSeconds}秒</span>
     </div>
   );
 }

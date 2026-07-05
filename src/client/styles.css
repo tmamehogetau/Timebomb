@@ -197,6 +197,12 @@ button:disabled {
   line-height: 1.1;
 }
 
+.round-turn-cue-time {
+  color: var(--green);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
 .round-turn-cue-mine {
   border-color: rgba(243, 201, 105, 0.68);
   background: linear-gradient(180deg, rgba(76, 54, 16, 0.94), rgba(17, 18, 20, 0.8));
